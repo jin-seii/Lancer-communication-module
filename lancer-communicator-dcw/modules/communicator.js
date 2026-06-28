@@ -1,4 +1,4 @@
-export class LancerCommunicator {
+﻿export class LancerCommunicator {
     /** Кэшированные настройки модуля */
     static settings = {
         globalTypingSpeed: 130,
@@ -52,7 +52,7 @@ export class LancerCommunicator {
      * @param {...any} args - Дополнительные аргументы
      */
     static debug(message, ...args) {
-        const debugMode = game.settings?.get('lancer-communicator', 'debugMode') ?? false;
+        const debugMode = game.settings?.get('lancer-communicator-dcw', 'debugMode') ?? false;
         if (debugMode) {
             console.log(`Lancer Communicator | DEBUG | ${message}`, ...args);
         }
@@ -86,7 +86,7 @@ export class LancerCommunicator {
 
         this._cacheSettings();
 
-        game.socket.on('module.lancer-communicator', (payload) => {
+        game.socket.on('module.lancer-communicator-dcw', (payload) => {
             if (payload?.type === 'showMessage' && payload.data?.characterName) {
                 this.savedMessages.push({
                     ...payload.data,
@@ -103,12 +103,12 @@ export class LancerCommunicator {
      * Загружает и кэширует настройки модуля
      */
     static _cacheSettings() {
-        this.settings.globalTypingSpeed = game.settings.get('lancer-communicator', 'globalTypingSpeed') ?? 130;
-        this.settings.sentencePauseDelay = game.settings.get('lancer-communicator', 'sentencePauseDelay') ?? 300;
-        this.settings.voiceVolume = game.settings.get('lancer-communicator', 'voiceVolume') ?? 0.3;
-        this.settings.fontFamily = game.settings.get('lancer-communicator', 'fontFamily') || 'Purista';
-        this.settings.globalMessageWidth = game.settings.get('lancer-communicator', 'globalMessageWidth') ?? 30;
-        this.settings.debugMode = game.settings.get('lancer-communicator', 'debugMode') ?? false;
+        this.settings.globalTypingSpeed = game.settings.get('lancer-communicator-dcw', 'globalTypingSpeed') ?? 130;
+        this.settings.sentencePauseDelay = game.settings.get('lancer-communicator-dcw', 'sentencePauseDelay') ?? 300;
+        this.settings.voiceVolume = game.settings.get('lancer-communicator-dcw', 'voiceVolume') ?? 0.3;
+        this.settings.fontFamily = game.settings.get('lancer-communicator-dcw', 'fontFamily') || 'Purista';
+        this.settings.globalMessageWidth = game.settings.get('lancer-communicator-dcw', 'globalMessageWidth') ?? 30;
+        this.settings.debugMode = game.settings.get('lancer-communicator-dcw', 'debugMode') ?? false;
         this.debug('Settings cached:', this.settings);
     }
 
@@ -168,8 +168,8 @@ export class LancerCommunicator {
             fontSize: Number(this._getFormValue(form, '#font-size-input')) || 18,
             typingSpeed: useGlobalSpeed ? null : typingSpeedValue,
             messageWidth: Number(this._getFormValue(form, '#message-width-input')) || 30,
-            postToChat: form.querySelector('#post-to-chat')?.checked ?? game.settings.get('lancer-communicator', 'postToChat'),
-            postImageToChat: form.querySelector('#post-image-to-chat')?.checked ?? game.settings.get('lancer-communicator', 'postImageToChat')
+            postToChat: form.querySelector('#post-to-chat')?.checked ?? game.settings.get('lancer-communicator-dcw', 'postToChat'),
+            postImageToChat: form.querySelector('#post-image-to-chat')?.checked ?? game.settings.get('lancer-communicator-dcw', 'postImageToChat')
         };
     }
 
@@ -312,16 +312,16 @@ export class LancerCommunicator {
         this._cacheSettings();
 
         const selectedToken = canvas.tokens.controlled[0];
-        const lastPortrait = game.settings.get('lancer-communicator', 'lastPortrait');
-        let lastCharacterName = game.settings.get('lancer-communicator', 'lastCharacterName');
-        const lastSound = game.settings.get('lancer-communicator', 'lastSound');
-        const lastVoiceover = game.settings.get('lancer-communicator', 'lastVoiceover');
-        const lastImage = game.settings.get('lancer-communicator', 'lastImage');
-        const lastStyle = game.settings.get('lancer-communicator', 'lastMessageStyle') || 'undertale';
-        const fontSize = game.settings.get('lancer-communicator', 'messageFontSize');
-        const lastTypingSpeed = game.settings.get('lancer-communicator', 'lastTypingSpeed');
+        const lastPortrait = game.settings.get('lancer-communicator-dcw', 'lastPortrait');
+        let lastCharacterName = game.settings.get('lancer-communicator-dcw', 'lastCharacterName');
+        const lastSound = game.settings.get('lancer-communicator-dcw', 'lastSound');
+        const lastVoiceover = game.settings.get('lancer-communicator-dcw', 'lastVoiceover');
+        const lastImage = game.settings.get('lancer-communicator-dcw', 'lastImage');
+        const lastStyle = game.settings.get('lancer-communicator-dcw', 'lastMessageStyle') || 'undertale';
+        const fontSize = game.settings.get('lancer-communicator-dcw', 'messageFontSize');
+        const lastTypingSpeed = game.settings.get('lancer-communicator-dcw', 'lastTypingSpeed');
         const globalTypingSpeed = this.settings.globalTypingSpeed;
-        const lastMessageWidth = game.settings.get('lancer-communicator', 'lastMessageWidth');
+        const lastMessageWidth = game.settings.get('lancer-communicator-dcw', 'lastMessageWidth');
         const globalMessageWidth = this.settings.globalMessageWidth;
 
         if (selectedToken) {
@@ -423,14 +423,14 @@ export class LancerCommunicator {
                     </div>
                     <div class="lcm-form-group lcm-post-to-chat-row">
                         <label class="lcm-toggle-label">
-                            <input type="checkbox" id="post-to-chat" ${game.settings.get('lancer-communicator', 'postToChat') ? 'checked' : ''}>
+                            <input type="checkbox" id="post-to-chat" ${game.settings.get('lancer-communicator-dcw', 'postToChat') ? 'checked' : ''}>
                             <span>${game.i18n.localize('LANCER.Settings.PostToChat')}</span>
                         </label>
                         <small class="lcm-hint">${game.i18n.localize('LANCER.Settings.PostToChatHint')}</small>
                     </div>
                     <div class="lcm-form-group lcm-post-to-chat-row">
                         <label class="lcm-toggle-label">
-                            <input type="checkbox" id="post-image-to-chat" ${game.settings.get('lancer-communicator', 'postImageToChat') ? 'checked' : ''}>
+                            <input type="checkbox" id="post-image-to-chat" ${game.settings.get('lancer-communicator-dcw', 'postImageToChat') ? 'checked' : ''}>
                             <span>${game.i18n.localize('LANCER.Settings.PostImageToChat')}</span>
                         </label>
                         <small class="lcm-hint">${game.i18n.localize('LANCER.Settings.PostImageToChatHint')}</small>
@@ -682,14 +682,14 @@ export class LancerCommunicator {
      * @param {Object} data - Данные формы
      */
     static _saveDialogSettings(data) {
-        game.settings.set('lancer-communicator', 'lastCharacterName', data.characterName);
-        game.settings.set('lancer-communicator', 'lastPortrait', data.portraitPath);
-        game.settings.set('lancer-communicator', 'lastSound', data.soundPath);
-        game.settings.set('lancer-communicator', 'lastImage', data.imagePath);
-        game.settings.set('lancer-communicator', 'lastMessageStyle', data.style);
-        game.settings.set('lancer-communicator', 'fontFamily', data.fontFamily);
-        game.settings.set('lancer-communicator', 'lastTypingSpeed', data.typingSpeed);
-        game.settings.set('lancer-communicator', 'lastMessageWidth', data.messageWidth);
+        game.settings.set('lancer-communicator-dcw', 'lastCharacterName', data.characterName);
+        game.settings.set('lancer-communicator-dcw', 'lastPortrait', data.portraitPath);
+        game.settings.set('lancer-communicator-dcw', 'lastSound', data.soundPath);
+        game.settings.set('lancer-communicator-dcw', 'lastImage', data.imagePath);
+        game.settings.set('lancer-communicator-dcw', 'lastMessageStyle', data.style);
+        game.settings.set('lancer-communicator-dcw', 'fontFamily', data.fontFamily);
+        game.settings.set('lancer-communicator-dcw', 'lastTypingSpeed', data.typingSpeed);
+        game.settings.set('lancer-communicator-dcw', 'lastMessageWidth', data.messageWidth);
     }
 
     /**
@@ -702,21 +702,21 @@ export class LancerCommunicator {
 
         const fontSize = Number(formElement.querySelector('#font-size-input')?.value || 18);
         if (fontSize >= 10 && fontSize <= 32) {
-            game.settings.set('lancer-communicator', 'messageFontSize', fontSize)
+            game.settings.set('lancer-communicator-dcw', 'messageFontSize', fontSize)
                 .catch(err => console.error('Lancer Communicator | Error saving font size:', err));
         }
 
         const messageWidth = Number(formElement.querySelector('#message-width-input')?.value || 30);
         if (messageWidth >= 20 && messageWidth <= 90) {
-            game.settings.set('lancer-communicator', 'lastMessageWidth', messageWidth)
+            game.settings.set('lancer-communicator-dcw', 'lastMessageWidth', messageWidth)
                 .catch(err => console.error('Lancer Communicator | Error saving message width:', err));
         }
 
         const voiceoverPath = this._getFormValue(formElement, '#voiceover-path');
-        game.settings.set('lancer-communicator', 'lastVoiceover', voiceoverPath);
+        game.settings.set('lancer-communicator-dcw', 'lastVoiceover', voiceoverPath);
 
         const postImageToChat = formElement.querySelector('#post-image-to-chat')?.checked;
-        if (postImageToChat !== undefined) game.settings.set('lancer-communicator', 'postImageToChat', postImageToChat);
+        if (postImageToChat !== undefined) game.settings.set('lancer-communicator-dcw', 'postImageToChat', postImageToChat);
     }
 
     // ─── MESSAGING ─────────────────────────────────────────────────
@@ -764,7 +764,7 @@ export class LancerCommunicator {
         // Показываем локально
         this.showCommunicatorMessage(messageData).catch(console.error);
         // Отправляем остальным клиентам
-        game.socket.emit('module.lancer-communicator', {
+        game.socket.emit('module.lancer-communicator-dcw', {
             type: 'showMessage',
             data: messageData
         });
@@ -788,7 +788,7 @@ export class LancerCommunicator {
      * @param {Object} data - Данные сообщения
      */
     static async _postToChat(data, postToChatOverride = null) {
-        const enabled = postToChatOverride !== null ? postToChatOverride : game.settings.get('lancer-communicator', 'postToChat');
+        const enabled = postToChatOverride !== null ? postToChatOverride : game.settings.get('lancer-communicator-dcw', 'postToChat');
         if (!enabled) return;
 
         const { characterName, portraitPath, message, style, fontFamily, imagePath, postImageToChat } = data;
@@ -846,7 +846,7 @@ export class LancerCommunicator {
         const nameShadow = p.nameShadow ? `text-shadow:${p.nameShadow};` : '';
         const textShadow = p.textShadow ? `text-shadow:${p.textShadow};` : '';
 
-        const imageHtml = (imagePath && (postImageToChat ?? game.settings.get('lancer-communicator', 'postImageToChat')))
+        const imageHtml = (imagePath && (postImageToChat ?? game.settings.get('lancer-communicator-dcw', 'postImageToChat')))
             ? `<div style="margin-top:8px;text-align:center;"><img src="${this._escapeHtml(imagePath)}" onclick="new ImagePopout(this.getAttribute('src')).render(true);" style="max-width:400px; max-height:400px; width:100%; object-fit:contain; border-radius:5px; border:${p.border}; box-shadow:${p.shadow}; cursor:pointer; ${isDamaged ? 'filter:contrast(120%) brightness(110%);' : ''}" alt="Attached Image"></div>`
             : '';
 
@@ -1151,7 +1151,7 @@ export class LancerCommunicator {
                         const safeStyle = JSON.stringify(style);
                         const safeFontFamily = JSON.stringify(fontFamily || '');
                         const commandText = `// Lancer Communicator Macro
-                        game.modules.get('lancer-communicator').api.sendCommunicatorMessage(
+                        game.modules.get('lancer-communicator-dcw').api.sendCommunicatorMessage(
                             ${safeCharacterName},
                             ${safePortraitPath},
                             ${safeMessage},
@@ -1202,8 +1202,8 @@ export class LancerCommunicator {
         const typingSpeedArg = typingSpeed !== null ? typingSpeed : 'null';
         const messageWidthArg = messageWidth !== null ? messageWidth : 'null';
         const postImageToChatArg = postImageToChat !== null ? postImageToChat : 'null';
-        const globalTypingSpeed = game.settings.get('lancer-communicator', 'globalTypingSpeed');
-        const globalMessageWidth = game.settings.get('lancer-communicator', 'globalMessageWidth') || 30;
+        const globalTypingSpeed = game.settings.get('lancer-communicator-dcw', 'globalTypingSpeed');
+        const globalMessageWidth = game.settings.get('lancer-communicator-dcw', 'globalMessageWidth') || 30;
 
         // Генерируем опции стилей для селекта
         const styleOptions = this.STYLES.map(s =>
@@ -1244,9 +1244,9 @@ export class LancerCommunicator {
 
                         const commandText = `// Lancer Communicator Quick Macro
 (async () => {
-    const globalTypingSpeed = game.settings.get('lancer-communicator', 'globalTypingSpeed');
-    const defaultFontSize = game.settings.get('lancer-communicator', 'messageFontSize') || ${fontSize};
-    const defaultMessageWidth = game.settings.get('lancer-communicator', 'lastMessageWidth') || ${messageWidthArg !== 'null' ? messageWidthArg : globalMessageWidth};
+    const globalTypingSpeed = game.settings.get('lancer-communicator-dcw', 'globalTypingSpeed');
+    const defaultFontSize = game.settings.get('lancer-communicator-dcw', 'messageFontSize') || ${fontSize};
+    const defaultMessageWidth = game.settings.get('lancer-communicator-dcw', 'lastMessageWidth') || ${messageWidthArg !== 'null' ? messageWidthArg : globalMessageWidth};
     
     const styleOptions = \`${styleOptions}\`;
     
@@ -1354,7 +1354,7 @@ export class LancerCommunicator {
     });
     
     if (result && result.message && result.message.trim()) {
-        game.modules.get('lancer-communicator').api.sendCommunicatorMessage(
+        game.modules.get('lancer-communicator-dcw').api.sendCommunicatorMessage(
             "${escapedCharName}",
             "${escapedPortraitPath}",
             result.message,
@@ -1416,14 +1416,14 @@ export class LancerCommunicator {
      */
     static openSaveMessagesDialog() {
         const isGM = game.user.isGM;
-        const allowAccess = isGM || (game.settings.get('lancer-communicator', 'allowPlayersAccess') ?? true);
+        const allowAccess = isGM || (game.settings.get('lancer-communicator-dcw', 'allowPlayersAccess') ?? true);
 
         if (!allowAccess) {
             ui.notifications.warn(game.i18n.localize('LANCER.Settings.Warnings.NoAccessPermission') || "Você não tem permissão para acessar os registros.");
             return;
         }
 
-        const allowExport = isGM || (game.settings.get('lancer-communicator', 'allowPlayersExport') ?? false);
+        const allowExport = isGM || (game.settings.get('lancer-communicator-dcw', 'allowPlayersExport') ?? false);
         const messages = this.savedMessages;
         const count = messages.length;
 

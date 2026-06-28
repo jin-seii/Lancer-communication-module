@@ -4,7 +4,7 @@ import { LancerCommunicator } from './communicator.js';
  * Регистрирует публичное API модуля для доступа из макросов
  */
 export function registerAPI() {
-    game.modules.get('lancer-communicator').api = {
+    game.modules.get('lancer-communicator-dcw').api = {
         /**
          * Открывает диалог настроек коммуникатора
          */

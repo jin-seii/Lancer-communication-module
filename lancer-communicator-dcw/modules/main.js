@@ -2,7 +2,7 @@ import { LancerCommunicator } from './communicator.js';
 import { registerSettings } from './settings.js';
 import { registerAPI } from './api.js';
 
-const MODULE_NAME = 'lancer-communicator';
+const MODULE_NAME = 'lancer-communicator-dcw';
 
 /**
  * Выводит отладочное сообщение в консоль, если включен режим дебага

@@ -2,7 +2,7 @@
  * Модуль регистрации настроек Lancer Communicator
  */
 export function registerSettings() {
-    const MODULE = 'lancer-communicator';
+    const MODULE = 'lancer-communicator-dcw';
 
     // ─── Настройки для пользователей ─────────────────────────────
 
