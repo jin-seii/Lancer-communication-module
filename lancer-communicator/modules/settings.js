@@ -79,7 +79,7 @@ export function registerSettings() {
         config: true,
         type: Number,
         range: { min: 10, max: 32, step: 1 },
-        default: 14,
+        default: 18,
         onChange: (value) => {
             document.documentElement.style.setProperty('--message-font-size', `${value}px`);
         }
@@ -92,20 +92,11 @@ export function registerSettings() {
         config: true,
         type: Number,
         range: { min: 20, max: 90, step: 5 },
-        default: 40,
+        default: 30,
         onChange: (value) => {
             document.documentElement.style.setProperty('--message-width', `${value}%`);
             document.documentElement.style.setProperty('--message-left', `${(100 - value) / 2}%`);
         }
-    });
-
-    game.settings.register(MODULE, 'enableTextShake', {
-        name: game.i18n.localize('LANCER.Settings.EnableTextShake'),
-        hint: game.i18n.localize('LANCER.Settings.EnableTextShakeHint'),
-        scope: 'world',
-        config: true,
-        type: Boolean,
-        default: true
     });
 
     game.settings.register(MODULE, 'debugMode', {
@@ -125,7 +116,7 @@ export function registerSettings() {
         scope: 'client',
         config: false,
         type: String,
-        default: 'MOSCOW2024'
+        default: 'Purista'
     });
 
     game.settings.register(MODULE, 'communicatorFont', {
@@ -148,7 +139,7 @@ export function registerSettings() {
             'Serif': 'Serif',
             'Sans-serif': 'Sans-serif'
         },
-        default: 'MOSCOW2024',
+        default: 'Purista',
         onChange: (value) => {
             document.documentElement.style.setProperty('--message-font', value);
         }
@@ -185,7 +176,7 @@ export function registerSettings() {
         scope: 'client',
         config: false,
         type: String,
-        default: 'green'
+        default: 'undertale'
     });
 
     game.settings.register(MODULE, 'lastVoiceover', {

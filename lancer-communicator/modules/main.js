@@ -70,9 +70,9 @@ Hooks.once('ready', () => {
 
     // Применяем CSS-переменные для шрифта из сохранённых настроек
     try {
-        const fontSize = game.settings.get(MODULE_NAME, 'messageFontSize') || 14;
-        const fontFamily = game.settings.get(MODULE_NAME, 'fontFamily') || 'MOSCOW2024';
-        const messageWidth = game.settings.get(MODULE_NAME, 'globalMessageWidth') || 40;
+        const fontSize = game.settings.get(MODULE_NAME, 'messageFontSize') || 18;
+        const fontFamily = game.settings.get(MODULE_NAME, 'fontFamily') || 'Purista';
+        const messageWidth = game.settings.get(MODULE_NAME, 'globalMessageWidth') || 30;
         const debugMode = game.settings.get(MODULE_NAME, 'debugMode') ?? false;
 
         document.documentElement.style.setProperty('--message-font-size', `${fontSize}px`);
@@ -83,10 +83,10 @@ Hooks.once('ready', () => {
         debug('Module ready', { fontSize, fontFamily, messageWidth, debugMode });
     } catch (error) {
         console.error('Lancer Communicator | Error applying CSS settings:', error);
-        document.documentElement.style.setProperty('--message-font-size', '14px');
-        document.documentElement.style.setProperty('--message-font', 'MOSCOW2024');
-        document.documentElement.style.setProperty('--message-width', '40%');
-        document.documentElement.style.setProperty('--message-left', '30%');
+        document.documentElement.style.setProperty('--message-font-size', '18px');
+        document.documentElement.style.setProperty('--message-font', 'Purista');
+        document.documentElement.style.setProperty('--message-width', '30%');
+        document.documentElement.style.setProperty('--message-left', '35%');
     }
 
     LancerCommunicator.initSocketListeners();
@@ -194,11 +194,11 @@ function handleDirectSend(sendContent) {
 
     const soundPath = game.settings.get(MODULE_NAME, 'lastSound') || '';
     const voiceoverPath = game.settings.get(MODULE_NAME, 'lastVoiceover') || '';
-    const style = game.settings.get(MODULE_NAME, 'lastMessageStyle') || 'green';
-    const fontSize = game.settings.get(MODULE_NAME, 'messageFontSize') || 14;
-    const fontFamily = game.settings.get(MODULE_NAME, 'fontFamily') || 'MOSCOW2024';
+    const style = game.settings.get(MODULE_NAME, 'lastMessageStyle') || 'undertale';
+    const fontSize = game.settings.get(MODULE_NAME, 'messageFontSize') || 18;
+    const fontFamily = game.settings.get(MODULE_NAME, 'fontFamily') || 'Purista';
     const typingSpeed = game.settings.get(MODULE_NAME, 'lastTypingSpeed');
-    const messageWidth = game.settings.get(MODULE_NAME, 'lastMessageWidth') || game.settings.get(MODULE_NAME, 'globalMessageWidth') || 40;
+    const messageWidth = game.settings.get(MODULE_NAME, 'lastMessageWidth') || game.settings.get(MODULE_NAME, 'globalMessageWidth') || 30;
     const postToChat = game.settings.get(MODULE_NAME, 'postToChat');
 
     LancerCommunicator.sendCommunicatorMessage(

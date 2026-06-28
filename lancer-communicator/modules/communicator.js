@@ -5,9 +5,8 @@ export class LancerCommunicator {
         typingSpeed: null, // null означает использование глобальной скорости
         sentencePauseDelay: 300,
         voiceVolume: 0.3,
-        fontFamily: 'MOSCOW2024',
-        enableTextShake: true,
-        globalMessageWidth: 40,
+        fontFamily: 'Purista',
+        globalMessageWidth: 30,
         debugMode: false
     };
 
@@ -107,9 +106,8 @@ export class LancerCommunicator {
         this.settings.globalTypingSpeed = game.settings.get('lancer-communicator', 'globalTypingSpeed') ?? 130;
         this.settings.sentencePauseDelay = game.settings.get('lancer-communicator', 'sentencePauseDelay') ?? 300;
         this.settings.voiceVolume = game.settings.get('lancer-communicator', 'voiceVolume') ?? 0.3;
-        this.settings.fontFamily = game.settings.get('lancer-communicator', 'fontFamily') || 'MOSCOW2024';
-        this.settings.enableTextShake = game.settings.get('lancer-communicator', 'enableTextShake') ?? true;
-        this.settings.globalMessageWidth = game.settings.get('lancer-communicator', 'globalMessageWidth') ?? 40;
+        this.settings.fontFamily = game.settings.get('lancer-communicator', 'fontFamily') || 'Purista';
+        this.settings.globalMessageWidth = game.settings.get('lancer-communicator', 'globalMessageWidth') ?? 30;
         this.settings.debugMode = game.settings.get('lancer-communicator', 'debugMode') ?? false;
         this.debug('Settings cached:', this.settings);
     }
@@ -167,9 +165,9 @@ export class LancerCommunicator {
             imagePath: this._getFormValue(form, '#image-path'),
             style: this._getFormValue(form, '#message-style'),
             fontFamily: this._getFormValue(form, '#font-family'),
-            fontSize: Number(this._getFormValue(form, '#font-size-input')) || 14,
+            fontSize: Number(this._getFormValue(form, '#font-size-input')) || 18,
             typingSpeed: useGlobalSpeed ? null : typingSpeedValue,
-            messageWidth: Number(this._getFormValue(form, '#message-width-input')) || 40,
+            messageWidth: Number(this._getFormValue(form, '#message-width-input')) || 30,
             postToChat: form.querySelector('#post-to-chat')?.checked ?? game.settings.get('lancer-communicator', 'postToChat'),
             postImageToChat: form.querySelector('#post-image-to-chat')?.checked ?? game.settings.get('lancer-communicator', 'postImageToChat')
         };
@@ -319,7 +317,7 @@ export class LancerCommunicator {
         const lastSound = game.settings.get('lancer-communicator', 'lastSound');
         const lastVoiceover = game.settings.get('lancer-communicator', 'lastVoiceover');
         const lastImage = game.settings.get('lancer-communicator', 'lastImage');
-        const lastStyle = game.settings.get('lancer-communicator', 'lastMessageStyle');
+        const lastStyle = game.settings.get('lancer-communicator', 'lastMessageStyle') || 'undertale';
         const fontSize = game.settings.get('lancer-communicator', 'messageFontSize');
         const lastTypingSpeed = game.settings.get('lancer-communicator', 'lastTypingSpeed');
         const globalTypingSpeed = this.settings.globalTypingSpeed;
@@ -415,8 +413,8 @@ export class LancerCommunicator {
                     <div class="lcm-form-group">
                         <label>${game.i18n.localize('LANCER.Settings.MessageWidth')}</label>
                         <div class="lcm-input-group">
-                            <input type="range" id="message-width-input" min="20" max="90" step="5" value="${lastMessageWidth ?? globalMessageWidth ?? 40}">
-                            <span id="message-width-display">${lastMessageWidth ?? globalMessageWidth ?? 40}%</span>
+                            <input type="range" id="message-width-input" min="20" max="90" step="5" value="${lastMessageWidth ?? globalMessageWidth ?? 30}">
+                            <span id="message-width-display">${lastMessageWidth ?? globalMessageWidth ?? 30}%</span>
                         </div>
                     </div>
                     <div class="lcm-form-group">
@@ -702,13 +700,13 @@ export class LancerCommunicator {
         const formElement = html[0]?.querySelector('form');
         if (!formElement) return;
 
-        const fontSize = Number(formElement.querySelector('#font-size-input')?.value || 14);
+        const fontSize = Number(formElement.querySelector('#font-size-input')?.value || 18);
         if (fontSize >= 10 && fontSize <= 32) {
             game.settings.set('lancer-communicator', 'messageFontSize', fontSize)
                 .catch(err => console.error('Lancer Communicator | Error saving font size:', err));
         }
 
-        const messageWidth = Number(formElement.querySelector('#message-width-input')?.value || 40);
+        const messageWidth = Number(formElement.querySelector('#message-width-input')?.value || 30);
         if (messageWidth >= 20 && messageWidth <= 90) {
             game.settings.set('lancer-communicator', 'lastMessageWidth', messageWidth)
                 .catch(err => console.error('Lancer Communicator | Error saving message width:', err));
@@ -735,10 +733,10 @@ export class LancerCommunicator {
      * @param {string|null} fontFamily - Семейство шрифта
      * @param {number|null} typingSpeed - Скорость печати (null = глобальная)
      */
-    static sendCommunicatorMessage(characterName, portraitPath, message, soundPath = '', voiceoverPath = '', imagePath = '', style = 'green', fontSize = 14, fontFamily = null, typingSpeed = null, messageWidth = null, postToChat = null, postImageToChat = null) {
+    static sendCommunicatorMessage(characterName, portraitPath, message, soundPath = '', voiceoverPath = '', imagePath = '', style = 'undertale', fontSize = 18, fontFamily = null, typingSpeed = null, messageWidth = null, postToChat = null, postImageToChat = null) {
         const effectiveFont = fontFamily || this.settings.fontFamily;
         const effectiveTypingSpeed = this._getEffectiveTypingSpeed(typingSpeed);
-        const effectiveWidth = messageWidth || this.settings.globalMessageWidth || 40;
+        const effectiveWidth = messageWidth || this.settings.globalMessageWidth || 30;
         const effectivePortrait = portraitPath || 'icons/svg/mystery-man.svg';
 
         const messageData = {
@@ -774,59 +772,15 @@ export class LancerCommunicator {
     }
 
     /**
-     * Обрабатывает текст, оборачивая заглавные буквы в span с анимацией тряски
-     * Логика идентична эффекту печатной машинки в showCommunicatorMessage
+     * Безопасно подготавливает текст для рендера в чате
      * @param {string} text - Исходный текст
-     * @returns {string} HTML с классами lcm-shake-text
+     * @returns {string} HTML с сохранёнными переносами
      */
     static _applyTextShake(text) {
-        const enableTextShake = game.settings.get('lancer-communicator', 'enableTextShake') ?? true;
-        if (!enableTextShake) {
-            return text.split(/<br\s*\/?>/i).map(seg => this._escapeHtml(seg)).join('<br>');
-        }
-
-        const upperCasePattern = /[A-ZА-Я]/;
-        let result = '';
-
-        for (let i = 0; i < text.length; i++) {
-            const remaining = text.substring(i);
-            const brMatch = remaining.match(/^<br\s*\/?>/i);
-            if (brMatch) {
-                result += '<br>';
-                i += brMatch[0].length - 1; // -1 as the loop increments i
-                continue;
-            }
-
-            const char = text[i];
-
-            if (upperCasePattern.test(char)) {
-                const isFirstChar = (i === 0);
-                const previousChars = text.substring(Math.max(0, i - 20), i);
-                const prevChar = i > 0 ? text[i - 1] : '';
-                const nextChar = i + 1 < text.length ? text[i + 1] : '';
-
-                const isPeriodBefore = /[\.\!\?]\s*$/.test(previousChars);
-                const isBrBefore = /<br\s*\/?>\s*$/i.test(previousChars);
-                const isNewlineBefore = previousChars.includes('\n');
-                const isStartOfSentence = isFirstChar
-                    || isPeriodBefore
-                    || isBrBefore
-                    || (isNewlineBefore && !/\S/.test(previousChars.substring(previousChars.lastIndexOf('\n'))));
-
-                const isPartOfAllCaps = upperCasePattern.test(nextChar)
-                    || (nextChar === ' ' && upperCasePattern.test(prevChar));
-
-                if (!isStartOfSentence || isPartOfAllCaps) {
-                    result += `<span class="lcm-shake-text">${this._escapeHtml(char)}</span>`;
-                } else {
-                    result += this._escapeHtml(char);
-                }
-            } else {
-                result += this._escapeHtml(char);
-            }
-        }
-
-        return result;
+        return String(text)
+            .split(/\r?\n/)
+            .map(line => line.split(/<br\s*\/?>/i).map(seg => this._escapeHtml(seg)).join('<br>'))
+            .join('\n');
     }
 
     /**
@@ -934,12 +888,12 @@ export class LancerCommunicator {
         // Кэшируем настройки, используемые в цикле
         this._cacheSettings();
         const effectiveTypingSpeed = this._getEffectiveTypingSpeed(typingSpeed);
-        const { voiceVolume, enableTextShake } = this.settings;
+        const { voiceVolume } = this.settings;
 
         // Создаём DOM
         const container = document.createElement('div');
         container.id = 'lancer-communicator-message';
-        container.className = `top-screen style-${style || 'green'}`;
+        container.className = `top-screen style-${style || 'undertale'}`;
 
         container.innerHTML = `
             <div class="lcm-communicator-container">
@@ -965,7 +919,7 @@ export class LancerCommunicator {
         }
         container.style.setProperty('--message-font', fontFamily || this.settings.fontFamily);
 
-        const effectiveWidth = messageWidth || this.settings.globalMessageWidth || 40;
+        const effectiveWidth = messageWidth || this.settings.globalMessageWidth || 30;
         container.style.setProperty('--message-width', `${effectiveWidth}%`);
         container.style.setProperty('--message-left', `${(100 - effectiveWidth) / 2}%`);
 
@@ -1002,7 +956,6 @@ export class LancerCommunicator {
         const punctuationPattern = /[\.,!?;:]/;
         const sentenceEndPattern = /[.!?]/;
         const silentCharPattern = /[\s\.,!?;:-]/;
-        const upperCasePattern = /[A-ZА-Я]/;
         const sentencePauseDelay = Math.max(0, Number(this.settings.sentencePauseDelay) || 0);
 
         return new Promise((resolve) => {
@@ -1021,9 +974,6 @@ export class LancerCommunicator {
                     }
 
                     const currentChar = message.charAt(i);
-                    const nextChar = (i + 1 < message.length) ? message.charAt(i + 1) : '';
-                    const prevChar = (i > 0) ? message.charAt(i - 1) : '';
-                    const previousChars = message.substring(Math.max(0, i - 20), i);
                     i++;
 
                     if (currentChar === '\n') {
@@ -1033,33 +983,7 @@ export class LancerCommunicator {
                         return;
                     }
 
-                    // Обработка заглавных букв — анимация тряски для капса
-                    if (upperCasePattern.test(currentChar)) {
-                        const isFirstChar = (i === 1);
-                        const isPeriodBefore = /[\.\!\?]\s*$/.test(previousChars);
-                        const isBrBefore = /<br\s*\/?>\s*$/i.test(previousChars);
-                        const isNewlineBefore = previousChars.includes('\n');
-                        const isStartOfSentence = isFirstChar
-                            || isPeriodBefore
-                            || isBrBefore
-                            || (isNewlineBefore && !/\S/.test(previousChars.substring(previousChars.lastIndexOf('\n'))));
-
-                        const isPartOfAllCaps = upperCasePattern.test(nextChar)
-                            || (nextChar === ' ' && upperCasePattern.test(prevChar));
-
-                        if (!isStartOfSentence || isPartOfAllCaps) {
-                            const span = document.createElement('span');
-                            span.textContent = currentChar;
-                            if (enableTextShake) {
-                                span.classList.add('lcm-shake-text');
-                            }
-                            messageTextEl.appendChild(span);
-                        } else {
-                            messageTextEl.appendChild(document.createTextNode(currentChar));
-                        }
-                    } else {
-                        messageTextEl.appendChild(document.createTextNode(currentChar));
-                    }
+                    messageTextEl.appendChild(document.createTextNode(currentChar));
 
                     // Звук на каждый символ (если нет озвучки)
                     if (!voiceoverAudio && soundInstance && !silentCharPattern.test(currentChar)) {
@@ -1218,18 +1142,25 @@ export class LancerCommunicator {
                             return;
                         }
 
-                        const safeMessage = message.replace(/\\/g, '\\\\\\\\').replace(/"/g, '\\\\"');
+                        const safeCharacterName = JSON.stringify(characterName);
+                        const safePortraitPath = JSON.stringify(portraitPath);
+                        const safeMessage = JSON.stringify(message);
+                        const safeSoundPath = JSON.stringify(soundPath);
+                        const safeVoiceoverPath = JSON.stringify(voiceoverPath);
+                        const safeImagePath = JSON.stringify(imagePath);
+                        const safeStyle = JSON.stringify(style);
+                        const safeFontFamily = JSON.stringify(fontFamily || '');
                         const commandText = `// Lancer Communicator Macro
                         game.modules.get('lancer-communicator').api.sendCommunicatorMessage(
-                            "${characterName.replace(/"/g, '\\\\"')}",
-                            "${portraitPath.replace(/"/g, '\\\\"')}",
-                            "${safeMessage}",
-                            "${soundPath}",
-                            "${voiceoverPath}",
-                            "${imagePath}",
-                            "${style}",
+                            ${safeCharacterName},
+                            ${safePortraitPath},
+                            ${safeMessage},
+                            ${safeSoundPath},
+                            ${safeVoiceoverPath},
+                            ${safeImagePath},
+                            ${safeStyle},
                             ${fontSize},
-                            "${fontFamily || ''}",
+                            ${safeFontFamily},
                             ${typingSpeedArg},
                             ${messageWidthArg},
                             null,
@@ -1272,6 +1203,7 @@ export class LancerCommunicator {
         const messageWidthArg = messageWidth !== null ? messageWidth : 'null';
         const postImageToChatArg = postImageToChat !== null ? postImageToChat : 'null';
         const globalTypingSpeed = game.settings.get('lancer-communicator', 'globalTypingSpeed');
+        const globalMessageWidth = game.settings.get('lancer-communicator', 'globalMessageWidth') || 30;
 
         // Генерируем опции стилей для селекта
         const styleOptions = this.STYLES.map(s =>
@@ -1314,7 +1246,7 @@ export class LancerCommunicator {
 (async () => {
     const globalTypingSpeed = game.settings.get('lancer-communicator', 'globalTypingSpeed');
     const defaultFontSize = game.settings.get('lancer-communicator', 'messageFontSize') || ${fontSize};
-    const defaultMessageWidth = game.settings.get('lancer-communicator', 'lastMessageWidth') || ${messageWidthArg !== 'null' ? messageWidthArg : 40};
+    const defaultMessageWidth = game.settings.get('lancer-communicator', 'lastMessageWidth') || ${messageWidthArg !== 'null' ? messageWidthArg : globalMessageWidth};
     
     const styleOptions = \`${styleOptions}\`;
     
@@ -1503,7 +1435,7 @@ export class LancerCommunicator {
                </div>`
             : messages.map((m) => {
                 const ts = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                const style = m.style || 'green';
+                const style = m.style || 'undertale';
                 const name = this._escapeHtml(m.characterName || '?');
                 const text = this._escapeHtml(m.message || '');
                 const initial = (m.characterName || '?').charAt(0).toUpperCase();
