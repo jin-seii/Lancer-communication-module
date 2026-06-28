@@ -41,6 +41,8 @@
         "typingSpeedHint": "Задержка между символами в эффекте печатной машинки (выше = медленнее)",
         "globalTypingSpeed": "Глобальная скорость печати",
         "globalTypingSpeedHint": "Глобальная задержка между символами. Используется, когда индивидуальная скорость не задана.",
+        "sentencePauseDelay": "Sentence Pause Delay",
+        "sentencePauseDelayHint": "Extra delay in milliseconds after sentence-ending punctuation (., !, ?).",
         "useGlobalSpeed": "Использовать глобальную",
         "autoSpeed": "Авто",
         "autoSpeedHint": "Автоматически рассчитать скорость печати на основе длительности озвучки и длины текста",

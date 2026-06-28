@@ -3,6 +3,7 @@ export class LancerCommunicator {
     static settings = {
         globalTypingSpeed: 130,
         typingSpeed: null, // null означает использование глобальной скорости
+        sentencePauseDelay: 300,
         voiceVolume: 0.3,
         fontFamily: 'MOSCOW2024',
         enableTextShake: true,
@@ -22,6 +23,8 @@ export class LancerCommunicator {
     /** Список доступных шрифтов для диалога */
     static FONTS = [
         'MOSCOW2024',
+        'Purista',
+        'Purista Bold',
         'Orbitron',
         'Share Tech Mono',
         'Chakra Petch',
@@ -102,6 +105,7 @@ export class LancerCommunicator {
      */
     static _cacheSettings() {
         this.settings.globalTypingSpeed = game.settings.get('lancer-communicator', 'globalTypingSpeed') ?? 130;
+        this.settings.sentencePauseDelay = game.settings.get('lancer-communicator', 'sentencePauseDelay') ?? 300;
         this.settings.voiceVolume = game.settings.get('lancer-communicator', 'voiceVolume') ?? 0.3;
         this.settings.fontFamily = game.settings.get('lancer-communicator', 'fontFamily') || 'MOSCOW2024';
         this.settings.enableTextShake = game.settings.get('lancer-communicator', 'enableTextShake') ?? true;
@@ -996,8 +1000,10 @@ export class LancerCommunicator {
 
         // Эффект печатной машинки
         const punctuationPattern = /[\.,!?;:]/;
+        const sentenceEndPattern = /[.!?]/;
         const silentCharPattern = /[\s\.,!?;:-]/;
         const upperCasePattern = /[A-ZА-Я]/;
+        const sentencePauseDelay = Math.max(0, Number(this.settings.sentencePauseDelay) || 0);
 
         return new Promise((resolve) => {
             let i = 0;
@@ -1019,6 +1025,13 @@ export class LancerCommunicator {
                     const prevChar = (i > 0) ? message.charAt(i - 1) : '';
                     const previousChars = message.substring(Math.max(0, i - 20), i);
                     i++;
+
+                    if (currentChar === '\n') {
+                        messageTextEl.appendChild(document.createElement('br'));
+                        const delay = Math.max(100 - effectiveTypingSpeed, 10);
+                        setTimeout(typeWriter, delay);
+                        return;
+                    }
 
                     // Обработка заглавных букв — анимация тряски для капса
                     if (upperCasePattern.test(currentChar)) {
@@ -1062,7 +1075,12 @@ export class LancerCommunicator {
 
                     // Задержка: знаки препинания — дольше, остальные — по скорости
                     const baseDelay = punctuationPattern.test(currentChar) ? 350 : 200;
-                    const delay = Math.max(baseDelay - effectiveTypingSpeed, 10);
+                    const nextVisibleChar = (i < message.length) ? message.charAt(i) : '';
+                    const shouldApplySentencePause = sentenceEndPattern.test(currentChar)
+                        && !sentenceEndPattern.test(nextVisibleChar)
+                        && sentencePauseDelay > 0;
+                    const delay = Math.max(baseDelay - effectiveTypingSpeed, 10)
+                        + (shouldApplySentencePause ? sentencePauseDelay : 0);
                     setTimeout(typeWriter, delay);
                 } else {
                     // Сообщение завершено — затухаем только звук набора (не озвучку!)

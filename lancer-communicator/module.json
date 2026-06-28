@@ -29,7 +29,7 @@
     },
     "authors": [
         {
-            "name": "KamiliaBlow"
+            "name": "jin-seii"
         }
     ],
     "esmodules": [
@@ -39,7 +39,7 @@
     "styles": [
         "styles/lancer-communicator.css"
     ],
-    "url": "https://github.com/KamiliaBlow/Lancer-communication-module",
-    "manifest": "https://raw.githubusercontent.com/KamiliaBlow/Lancer-communication-module/main/lancer-communicator/module.json",
-    "download": "https://github.com/KamiliaBlow/Lancer-communication-module/archive/refs/tags/v0.7.1.1.zip"
+    "url": "https://github.com/jin-seii/Lancer-communication-module",
+    "manifest": "https://raw.githubusercontent.com/jin-seii/Lancer-communication-module/main/lancer-communicator/module.json",
+    "download": "https://github.com/jin-seii/Lancer-communication-module/archive/refs/tags/v0.7.1.1.zip"
 }

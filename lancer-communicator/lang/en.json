@@ -41,6 +41,8 @@
         "typingSpeedHint": "Delay between characters in the typewriter effect (higher = slower)",
         "globalTypingSpeed": "Global Typing Speed",
         "globalTypingSpeedHint": "Global delay between characters. Used when individual speed is not set.",
+        "sentencePauseDelay": "Sentence Pause Delay",
+        "sentencePauseDelayHint": "Extra delay in milliseconds after sentence-ending punctuation (., !, ?).",
         "useGlobalSpeed": "Use global",
         "autoSpeed": "Auto",
         "autoSpeedHint": "Automatically calculate typing speed based on voiceover duration and text length",

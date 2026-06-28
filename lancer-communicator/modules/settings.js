@@ -52,6 +52,16 @@ export function registerSettings() {
         default: 130
     });
 
+    game.settings.register(MODULE, 'sentencePauseDelay', {
+        name: game.i18n.localize('LANCER.Settings.sentencePauseDelay'),
+        hint: game.i18n.localize('LANCER.Settings.sentencePauseDelayHint'),
+        scope: 'world',
+        config: true,
+        type: Number,
+        range: { min: 0, max: 1000, step: 50 },
+        default: 300
+    });
+
     game.settings.register(MODULE, 'voiceVolume', {
         name: game.i18n.localize('LANCER.Settings.voiceVolume'),
         hint: game.i18n.localize('LANCER.Settings.voiceVolumeHint'),
@@ -125,6 +135,8 @@ export function registerSettings() {
         type: String,
         choices: {
             'MOSCOW2024': 'MOSCOW2024',
+            'Purista': 'Purista',
+            'Purista Bold': 'Purista Bold',
             'Orbitron': 'Orbitron',
             'Share Tech Mono': 'Share Tech Mono',
             'Chakra Petch': 'Chakra Petch',

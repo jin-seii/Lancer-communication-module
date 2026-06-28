@@ -41,6 +41,8 @@
         "typingSpeedHint": "Atraso entre os caracteres no efeito de máquina de escrever (maior = mais lento)",
         "globalTypingSpeed": "Velocidade Global de Digitação",
         "globalTypingSpeedHint": "Atraso global entre caracteres. Usado quando a velocidade individual não está definida.",
+        "sentencePauseDelay": "Sentence Pause Delay",
+        "sentencePauseDelayHint": "Extra delay in milliseconds after sentence-ending punctuation (., !, ?).",
         "useGlobalSpeed": "Usar global",
         "autoSpeed": "Automático",
         "autoSpeedHint": "Calcula automaticamente a velocidade de digitação com base na duração da locução e no tamanho do texto",
