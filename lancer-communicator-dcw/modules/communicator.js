@@ -1,4 +1,7 @@
 ﻿export class LancerCommunicator {
+    static MODULE_ID = 'lancer-communicator-dcw';
+    static LEGACY_MODULE_ID = 'lancer-communicator';
+
     /** Кэшированные настройки модуля */
     static settings = {
         globalTypingSpeed: 130,
@@ -147,6 +150,28 @@
     }
 
     /**
+     * Нормализует пути к ассетам после смены ID модуля
+     * @param {string} path - Исходный путь
+     * @returns {string} Нормализованный путь
+     */
+    static _normalizeAssetPath(path) {
+        if (!path || typeof path !== 'string') return path;
+
+        let normalized = path.trim();
+        if (!normalized) return normalized;
+
+        const legacy = this.LEGACY_MODULE_ID;
+        const current = this.MODULE_ID;
+
+        normalized = normalized
+            .replace(`/modules/${legacy}/`, `/modules/${current}/`)
+            .replace(`modules/${legacy}/`, `modules/${current}/`)
+            .replace(`${legacy}/template/`, `modules/${current}/template/`);
+
+        return normalized;
+    }
+
+    /**
      * Извлекает данные формы из диалога настроек коммуникатора
      * @param {HTMLFormElement} form
      * @returns {Object} Данные формы
@@ -158,11 +183,11 @@
 
         return {
             characterName: this._getFormValue(form, '#character-name'),
-            portraitPath: this._getFormValue(form, '#portrait-path'),
+            portraitPath: this._normalizeAssetPath(this._getFormValue(form, '#portrait-path')),
             message: this._getFormValue(form, '#message-input'),
-            soundPath: this._getFormValue(form, '#sound-path'),
-            voiceoverPath: this._getFormValue(form, '#voiceover-path'),
-            imagePath: this._getFormValue(form, '#image-path'),
+            soundPath: this._normalizeAssetPath(this._getFormValue(form, '#sound-path')),
+            voiceoverPath: this._normalizeAssetPath(this._getFormValue(form, '#voiceover-path')),
+            imagePath: this._normalizeAssetPath(this._getFormValue(form, '#image-path')),
             style: this._getFormValue(form, '#message-style'),
             fontFamily: this._getFormValue(form, '#font-family'),
             fontSize: Number(this._getFormValue(form, '#font-size-input')) || 18,
@@ -271,19 +296,20 @@
      * @returns {Promise<number>} - Длительность в секундах
      */
     static async _getAudioDuration(audioPath) {
+        const normalizedPath = this._normalizeAssetPath(audioPath);
         return new Promise((resolve, reject) => {
-            const audio = new Audio(audioPath);
+            const audio = new Audio(normalizedPath);
 
             const onLoadedMetadata = () => {
                 cleanup();
                 const duration = audio.duration;
-                this.debug(`Audio duration loaded: ${duration}s for ${audioPath}`);
+                this.debug(`Audio duration loaded: ${duration}s for ${normalizedPath}`);
                 resolve(duration);
             };
 
             const onError = (e) => {
                 cleanup();
-                this.debug(`Failed to load audio: ${audioPath}`, e);
+                this.debug(`Failed to load audio: ${normalizedPath}`, e);
                 reject(new Error('Failed to load audio'));
             };
 
@@ -312,11 +338,11 @@
         this._cacheSettings();
 
         const selectedToken = canvas.tokens.controlled[0];
-        const lastPortrait = game.settings.get('lancer-communicator-dcw', 'lastPortrait');
+        const lastPortrait = this._normalizeAssetPath(game.settings.get('lancer-communicator-dcw', 'lastPortrait'));
         let lastCharacterName = game.settings.get('lancer-communicator-dcw', 'lastCharacterName');
-        const lastSound = game.settings.get('lancer-communicator-dcw', 'lastSound');
-        const lastVoiceover = game.settings.get('lancer-communicator-dcw', 'lastVoiceover');
-        const lastImage = game.settings.get('lancer-communicator-dcw', 'lastImage');
+        const lastSound = this._normalizeAssetPath(game.settings.get('lancer-communicator-dcw', 'lastSound'));
+        const lastVoiceover = this._normalizeAssetPath(game.settings.get('lancer-communicator-dcw', 'lastVoiceover'));
+        const lastImage = this._normalizeAssetPath(game.settings.get('lancer-communicator-dcw', 'lastImage'));
         const lastStyle = game.settings.get('lancer-communicator-dcw', 'lastMessageStyle') || 'undertale';
         const fontSize = game.settings.get('lancer-communicator-dcw', 'messageFontSize');
         const lastTypingSpeed = game.settings.get('lancer-communicator-dcw', 'lastTypingSpeed');
@@ -683,9 +709,9 @@
      */
     static _saveDialogSettings(data) {
         game.settings.set('lancer-communicator-dcw', 'lastCharacterName', data.characterName);
-        game.settings.set('lancer-communicator-dcw', 'lastPortrait', data.portraitPath);
-        game.settings.set('lancer-communicator-dcw', 'lastSound', data.soundPath);
-        game.settings.set('lancer-communicator-dcw', 'lastImage', data.imagePath);
+        game.settings.set('lancer-communicator-dcw', 'lastPortrait', this._normalizeAssetPath(data.portraitPath));
+        game.settings.set('lancer-communicator-dcw', 'lastSound', this._normalizeAssetPath(data.soundPath));
+        game.settings.set('lancer-communicator-dcw', 'lastImage', this._normalizeAssetPath(data.imagePath));
         game.settings.set('lancer-communicator-dcw', 'lastMessageStyle', data.style);
         game.settings.set('lancer-communicator-dcw', 'fontFamily', data.fontFamily);
         game.settings.set('lancer-communicator-dcw', 'lastTypingSpeed', data.typingSpeed);
@@ -712,7 +738,7 @@
                 .catch(err => console.error('Lancer Communicator | Error saving message width:', err));
         }
 
-        const voiceoverPath = this._getFormValue(formElement, '#voiceover-path');
+        const voiceoverPath = this._normalizeAssetPath(this._getFormValue(formElement, '#voiceover-path'));
         game.settings.set('lancer-communicator-dcw', 'lastVoiceover', voiceoverPath);
 
         const postImageToChat = formElement.querySelector('#post-image-to-chat')?.checked;
@@ -737,15 +763,18 @@
         const effectiveFont = fontFamily || this.settings.fontFamily;
         const effectiveTypingSpeed = this._getEffectiveTypingSpeed(typingSpeed);
         const effectiveWidth = messageWidth || this.settings.globalMessageWidth || 30;
-        const effectivePortrait = portraitPath || 'icons/svg/mystery-man.svg';
+        const effectivePortrait = this._normalizeAssetPath(portraitPath) || 'icons/svg/mystery-man.svg';
+        const normalizedSoundPath = this._normalizeAssetPath(soundPath);
+        const normalizedVoiceoverPath = this._normalizeAssetPath(voiceoverPath);
+        const normalizedImagePath = this._normalizeAssetPath(imagePath);
 
         const messageData = {
             characterName,
             portraitPath: effectivePortrait,
             message,
-            soundPath,
-            voiceoverPath,
-            imagePath,
+            soundPath: normalizedSoundPath,
+            voiceoverPath: normalizedVoiceoverPath,
+            imagePath: normalizedImagePath,
             style,
             fontSize,
             fontFamily: effectiveFont,
@@ -879,6 +908,10 @@
      */
     static async showCommunicatorMessage(data) {
         const { characterName, portraitPath, message = '', soundPath, voiceoverPath, imagePath, style, fontSize, fontFamily, typingSpeed, messageWidth } = data;
+        const normalizedPortraitPath = this._normalizeAssetPath(portraitPath);
+        const normalizedSoundPath = this._normalizeAssetPath(soundPath);
+        const normalizedVoiceoverPath = this._normalizeAssetPath(voiceoverPath);
+        const normalizedImagePath = this._normalizeAssetPath(imagePath);
 
         this.debug('Showing message:', { characterName, message: message?.substring(0, 50) + '...', typingSpeed });
 
@@ -898,12 +931,12 @@
         container.innerHTML = `
             <div class="lcm-communicator-container">
                 <div class="lcm-portrait-container">
-                    <img class="lcm-portrait" src="${this._escapeHtml(portraitPath)}" alt="${this._escapeHtml(characterName)}">
+                    <img class="lcm-portrait" src="${this._escapeHtml(normalizedPortraitPath)}" alt="${this._escapeHtml(characterName)}">
                     <div class="lcm-character-name">${this._escapeHtml(characterName)}</div>
                 </div>
                 <div style="flex-grow:1; display:flex; flex-direction:column; min-width:0;">
                     <div class="lcm-message-text"></div>
-                    ${imagePath ? `<img class="lcm-message-image" src="${this._escapeHtml(imagePath)}" onclick="new ImagePopout(this.getAttribute('src')).render(true);" style="display:none; max-width:400px; max-height:400px; object-fit:contain; align-self:flex-start; border-radius:5px; margin-top:10px; cursor:pointer;" alt="Attached Image">` : ''}
+                    ${normalizedImagePath ? `<img class="lcm-message-image" src="${this._escapeHtml(normalizedImagePath)}" onclick="new ImagePopout(this.getAttribute('src')).render(true);" style="display:none; max-width:400px; max-height:400px; object-fit:contain; align-self:flex-start; border-radius:5px; margin-top:10px; cursor:pointer;" alt="Attached Image">` : ''}
                 </div>
             </div>
         `;
@@ -927,10 +960,10 @@
         let soundInstance = null;
         let voiceoverAudio = null; // Отдельная ссылка на озвучку
 
-        if (voiceoverPath) {
+        if (normalizedVoiceoverPath) {
             try {
                 const clampedVolume = Math.min(voiceVolume + 0.2, 1.0);
-                voiceoverAudio = new Audio(voiceoverPath);
+                voiceoverAudio = new Audio(normalizedVoiceoverPath);
                 voiceoverAudio.volume = clampedVolume;
 
                 await this._waitForAudio(voiceoverAudio, 5000);
@@ -942,9 +975,9 @@
             }
         }
 
-        if (soundPath && !voiceoverPath) {
+        if (normalizedSoundPath && !normalizedVoiceoverPath) {
             try {
-                soundInstance = new Audio(soundPath);
+                soundInstance = new Audio(normalizedSoundPath);
                 await this._waitForAudio(soundInstance, 2000);
             } catch (error) {
                 console.error('Lancer Communicator | Sound preload error:', error);
@@ -1402,12 +1435,18 @@
      * @returns {Promise<boolean>}
      */
     static async _validateFile(path) {
-        if (!path) return false;
+        const normalizedPath = this._normalizeAssetPath(path);
+        if (!normalizedPath) return false;
+
         try {
-            const response = await fetch(path, { method: 'HEAD' });
-            return response.ok;
+            const headResponse = await fetch(normalizedPath, { method: 'HEAD' });
+            if (headResponse.ok) return true;
+
+            // Some hosts/proxies reject HEAD for static assets; fallback to GET.
+            const getResponse = await fetch(normalizedPath, { method: 'GET' });
+            return getResponse.ok;
         } catch (error) {
-            console.error(`Lancer Communicator | File validation failed for ${path}:`, error);
+            console.error(`Lancer Communicator | File validation failed for ${normalizedPath}:`, error);
             return false;
         }
     }
