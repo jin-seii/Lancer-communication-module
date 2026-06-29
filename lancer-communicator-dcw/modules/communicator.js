@@ -10,6 +10,8 @@
         'snd_wngdng6.wav',
         'snd_wngdng7.wav'
     ];
+    static SYSTEM_AI_MIN_INTERVAL_MS = 45;
+    static SYSTEM_AI_MAX_CONCURRENT = 4;
 
     /** Кэшированные настройки модуля */
     static settings = {
@@ -30,6 +32,12 @@
 
     /** Список сохранённых сообщений для экспорта */
     static savedMessages = [];
+
+    /** Активные короткие звуки набора (System AI) */
+    static activeTypingSounds = new Set();
+
+    /** Последний timestamp воспроизведения System AI звука */
+    static lastSystemAIVoicePlayAt = 0;
 
     /** Список доступных шрифтов для диалога */
     static FONTS = [
@@ -80,6 +88,20 @@
             this.currentAudio.currentTime = 0;
             this.currentAudio = null;
             this.debug('Stopped current audio');
+        }
+
+        // Останавливаем короткие звуки набора, если сообщение было прервано
+        if (this.activeTypingSounds.size > 0) {
+            for (const audio of this.activeTypingSounds) {
+                try {
+                    audio.pause();
+                    audio.currentTime = 0;
+                } catch (_e) {
+                    // Ignore stop errors.
+                }
+            }
+            this.activeTypingSounds.clear();
+            this.lastSystemAIVoicePlayAt = 0;
         }
 
         // Удаляем контейнер
@@ -170,6 +192,37 @@
         const index = Math.floor(Math.random() * this.SYSTEM_AI_VOICE_FILES.length);
         const file = this.SYSTEM_AI_VOICE_FILES[index];
         return `modules/${this.MODULE_ID}/template/sysai/${file}`;
+    }
+
+    /**
+     * Воспроизводит короткий случайный System AI звук с ограничением частоты/перекрытия
+     * @param {number} volume
+     */
+    static _playSystemAIVoice(volume) {
+        const now = performance.now();
+        if (now - this.lastSystemAIVoicePlayAt < this.SYSTEM_AI_MIN_INTERVAL_MS) return;
+        if (this.activeTypingSounds.size >= this.SYSTEM_AI_MAX_CONCURRENT) return;
+
+        const randomSystemAIVoice = this._getRandomSystemAIVoicePath();
+        if (!randomSystemAIVoice) return;
+
+        const randomSound = new Audio(randomSystemAIVoice);
+        randomSound.playbackRate = 0.9 + Math.random() * 0.2;
+        randomSound.volume = volume;
+        this.activeTypingSounds.add(randomSound);
+        this.lastSystemAIVoicePlayAt = now;
+
+        const cleanup = () => {
+            this.activeTypingSounds.delete(randomSound);
+            randomSound.removeEventListener('ended', cleanup);
+            randomSound.removeEventListener('error', cleanup);
+        };
+
+        randomSound.addEventListener('ended', cleanup, { once: true });
+        randomSound.addEventListener('error', cleanup, { once: true });
+        randomSound.play().catch(() => {
+            cleanup();
+        });
     }
 
     /**
@@ -1076,13 +1129,7 @@
                     // Звук на каждый символ (если нет озвучки)
                     if (!voiceoverAudio && !silentCharPattern.test(currentChar)) {
                         if (systemAIVoice) {
-                            const randomSystemAIVoice = this._getRandomSystemAIVoicePath();
-                            if (randomSystemAIVoice) {
-                                const randomSound = new Audio(randomSystemAIVoice);
-                                randomSound.playbackRate = 0.85 + Math.random() * 0.3;
-                                randomSound.volume = voiceVolume;
-                                randomSound.play().catch(() => undefined);
-                            }
+                            this._playSystemAIVoice(voiceVolume);
                         } else if (soundInstance) {
                             soundInstance.currentTime = 0;
                             soundInstance.playbackRate = 0.85 + Math.random() * 0.3;
