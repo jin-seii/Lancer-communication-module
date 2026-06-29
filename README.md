@@ -1,5 +1,5 @@
 # Lancer-communication-module
-This module allows you to display messages on the screen, in the style of windows from various games, such as Undertale/Deltarune. The module is independent and works on any system.
+This FoundryVTT module allows you to display messages on the screen, in the style of windows from various games, such as Undertale/Deltarune. The module is independent and works on any system.
 
 You can customize many parameters for the message:
 

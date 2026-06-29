@@ -453,7 +453,7 @@
     font-family: var(--message-font, 'Purista'), monospace;
 }
 
-/* Мигающий курсор */
+/* Blinking cursor */
 #lancer-communicator-message .lcm-message-text::after {
     content: '|';
     display: inline-block;
@@ -473,7 +473,7 @@
     }
 }
 
-/* Имя персонажа */
+/* Character name */
 #lancer-communicator-message .lcm-character-name {
     font-size: 20px;
     color: #03FB8D;
@@ -485,7 +485,7 @@
     word-wrap: break-word;
 }
 
-/* Анимация схлопывания в центр */
+/* Collapse animation to center */
 @keyframes tv-collapse {
     0% {
         opacity: 1;

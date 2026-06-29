@@ -1,10 +1,10 @@
 /**
- * Модуль регистрации настроек Lancer Communicator
+ * Lancer Communicator settings registration module
  */
 export function registerSettings() {
     const MODULE = 'lancer-communicator-dcw';
 
-    // ─── Настройки для пользователей ─────────────────────────────
+    // ─── User Settings ────────────────────────────────────────────
 
     game.settings.register(MODULE, 'postToChat', {
         name: game.i18n.localize('LANCER.Settings.PostToChat'),
@@ -108,7 +108,7 @@ export function registerSettings() {
         default: false
     });
 
-    // ─── Настройки шрифтов ───────────────────────────────────────
+    // ─── Font Settings ────────────────────────────────────────────
 
     game.settings.register(MODULE, 'fontFamily', {
         name: game.i18n.localize('LANCER.Settings.FontFamily'),
@@ -145,7 +145,7 @@ export function registerSettings() {
         }
     });
 
-    // ─── Клиентские сохранённые значения ─────────────────────────
+    // ─── Client Saved Values ──────────────────────────────────────
 
     game.settings.register(MODULE, 'lastPortrait', {
         name: game.i18n.localize('LANCER.Settings.currentPortrait'),

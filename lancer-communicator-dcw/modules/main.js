@@ -5,9 +5,9 @@ import { registerAPI } from './api.js';
 const MODULE_NAME = 'lancer-communicator-dcw';
 
 /**
- * Выводит отладочное сообщение в консоль, если включен режим дебага
- * @param {string} message - Сообщение для вывода
- * @param {...any} args - Дополнительные аргументы
+ * Outputs a debug message to the console when debug mode is enabled
+ * @param {string} message - Message to output
+ * @param {...any} args - Additional arguments
  */
 function debug(message, ...args) {
     const debugMode = game.settings?.get(MODULE_NAME, 'debugMode') ?? false;
@@ -16,14 +16,14 @@ function debug(message, ...args) {
     }
 }
 
-// ─── Инициализация модуля ──────────────────────────────────────
+// ─── Module Initialization ──────────────────────────────────────
 
 Hooks.once('init', () => {
     console.log('Lancer Communicator | Initializing');
     registerSettings();
     registerAPI();
 
-    // Добавление кнопки в инструменты токенов (v12 + v13)
+    // Add button to token controls (v12 + v13)
     Hooks.on('getSceneControlButtons', (controls) => {
         const allowPlayersAccess = game.settings.get(MODULE_NAME, 'allowPlayersAccess');
         if (!game.user.isGM && !allowPlayersAccess) return;
@@ -63,7 +63,7 @@ Hooks.once('init', () => {
     });
 });
 
-// ─── Готовность системы ────────────────────────────────────────
+// ─── System Ready ───────────────────────────────────────────────
 
 Hooks.once('ready', () => {
     console.log('Lancer Communicator | Ready');
@@ -71,7 +71,7 @@ Hooks.once('ready', () => {
     // Safety net for macro execution paths: ensure API is exposed after full world load.
     registerAPI();
 
-    // Применяем CSS-переменные для шрифта из сохранённых настроек
+    // Apply CSS variables for font from saved settings
     try {
         const fontSize = game.settings.get(MODULE_NAME, 'messageFontSize') || 18;
         const fontFamily = game.settings.get(MODULE_NAME, 'fontFamily') || 'Purista';

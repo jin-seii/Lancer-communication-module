@@ -2,22 +2,27 @@
     static MODULE_ID = 'lancer-communicator-dcw';
     static LEGACY_MODULE_ID = 'lancer-communicator';
     static SYSTEM_AI_VOICE_FILES = [
-        'snd_wngdng1.wav',
-        'snd_wngdng2.wav',
-        'snd_wngdng3.wav',
-        'snd_wngdng4.wav',
-        'snd_wngdng5.wav',
-        'snd_wngdng6.wav',
-        'snd_wngdng7.wav'
+        'snd_tv_voice_short.wav',
+        'snd_tv_voice_short_2.wav',
+        'snd_tv_voice_short_3.wav',
+        'snd_tv_voice_short_4.wav',
+        'snd_tv_voice_short_5.wav',
+        'snd_tv_voice_short_6.wav',
+        'snd_tv_voice_short_7.wav',
+        'snd_tv_voice_short_8.wav',
+        'snd_tv_voice_short_9.wav',
+        'snd_tv_voice_short_10.wav'
     ];
     static SYSTEM_AI_MIN_INTERVAL_MS = 45;
     static SYSTEM_AI_MAX_CONCURRENT = 4;
-    static SYSTEM_AI_PLAY_EVERY_NTH_CHAR = 2;
+    static SYSTEM_AI_PLAY_EVERY_NTH_CHAR = 1;
+    static TYPING_BLIP_MIN_INTERVAL_MS = 30;
+    static TYPING_BLIP_MAX_CONCURRENT = 3;
 
-    /** Кэшированные настройки модуля */
+    /** Cached module settings */
     static settings = {
         globalTypingSpeed: 130,
-        typingSpeed: null, // null означает использование глобальной скорости
+        typingSpeed: null, // null means use global speed
         sentencePauseDelay: 300,
         voiceVolume: 0.3,
         fontFamily: 'Purista',
@@ -25,22 +30,25 @@
         debugMode: false
     };
 
-    /** Текущее активное аудио (для прерывания при новом сообщении) */
+    /** Current active audio (for interrupting on a new message) */
     static currentAudio = null;
 
-    /** Текущий контейнер сообщения */
+    /** Current message container */
     static currentContainer = null;
 
-    /** Список сохранённых сообщений для экспорта */
+    /** List of saved messages for export */
     static savedMessages = [];
 
-    /** Активные короткие звуки набора (System AI) */
+    /**  System AI */
     static activeTypingSounds = new Set();
 
-    /** Последний timestamp воспроизведения System AI звука */
+    /**  System AI  */
     static lastSystemAIVoicePlayAt = 0;
 
-    /** Список доступных шрифтов для диалога */
+    /** Last play timestamp for regular typing blips */
+    static lastTypingBlipPlayAt = 0;
+
+    /** List of available fonts for the dialog */
     static FONTS = [
         'MOSCOW2024',
         'Purista',
@@ -57,7 +65,7 @@
         'Sans-serif'
     ];
 
-    /** Список доступных стилей сообщения */
+    /** List of available message styles */
     static STYLES = [
         { value: 'green', i18nKey: 'LANCER.Settings.MSGStyleGr' },
         { value: 'blue', i18nKey: 'LANCER.Settings.MSGStyleBl' },
@@ -68,9 +76,9 @@
     ];
 
     /**
-     * Выводит отладочное сообщение в консоль, если включен режим дебага
-     * @param {string} message - Сообщение для вывода
-     * @param {...any} args - Дополнительные аргументы
+     * Outputs a debug message to the console when debug mode is enabled
+     * @param {string} message - Message to output
+     * @param {...any} args - Additional arguments
      */
     static debug(message, ...args) {
         const debugMode = game.settings?.get('lancer-communicator-dcw', 'debugMode') ?? false;
@@ -80,10 +88,10 @@
     }
 
     /**
-     * Прерывает текущее воспроизводимое сообщение
+     * Interrupts the currently playing message
      */
     static _stopCurrentMessage() {
-        // Останавливаем аудио
+        // Stop audio
         if (this.currentAudio) {
             this.currentAudio.pause();
             this.currentAudio.currentTime = 0;
@@ -91,7 +99,7 @@
             this.debug('Stopped current audio');
         }
 
-        // Останавливаем короткие звуки набора, если сообщение было прервано
+        // Stop short typing sounds if the message was interrupted
         if (this.activeTypingSounds.size > 0) {
             for (const audio of this.activeTypingSounds) {
                 try {
@@ -102,10 +110,11 @@
                 }
             }
             this.activeTypingSounds.clear();
-            this.lastSystemAIVoicePlayAt = 0;
         }
+        this.lastSystemAIVoicePlayAt = 0;
+        this.lastTypingBlipPlayAt = 0;
 
-        // Удаляем контейнер
+        // Remove container
         if (this.currentContainer) {
             this.currentContainer.remove();
             this.currentContainer = null;
@@ -114,7 +123,7 @@
     }
 
     /**
-     * Инициализирует слушателей сокетов для коммуникации между клиентами
+     * Initializes socket listeners for client communication
      */
     static initSocketListeners() {
         if (!game.socket) return;
@@ -135,7 +144,7 @@
     }
 
     /**
-     * Загружает и кэширует настройки модуля
+     * Loads and caches module settings
      */
     static _cacheSettings() {
         this.settings.globalTypingSpeed = game.settings.get('lancer-communicator-dcw', 'globalTypingSpeed') ?? 130;
@@ -148,8 +157,8 @@
     }
 
     /**
-     * Возвращает эффективную скорость печати (из параметра или глобальную)
-     * @param {number|null} typingSpeed - Указанная скорость или null для использования глобальной
+     * Returns effective typing speed (from parameter or global)
+     * @param {number|null} typingSpeed - Specified speed or null to use global
      * @returns {number}
      */
     static _getEffectiveTypingSpeed(typingSpeed) {
@@ -158,12 +167,12 @@
         return effective;
     }
 
-    // ─── DOM HELPERS ───────────────────────────────────────────────
+    // --- DOM HELPERS -----------------------------------------------
 
     /**
-     * Безопасно извлекает значение элемента формы
-     * @param {HTMLFormElement} form - Форма
-     * @param {string} selector - CSS селектор
+     * Safely extracts a form element value
+     * @param {HTMLFormElement} form - Form
+     * @param {string} selector - CSS selector
      * @returns {string}
      */
     static _getFormValue(form, selector) {
@@ -171,7 +180,7 @@
     }
 
     /**
-     * Экранирует HTML-спецсимволы для безопасной вставки в innerHTML
+     * Escapes HTML special characters for safe insertion into innerHTML
      * @param {string} str
      * @returns {string}
      */
@@ -182,7 +191,7 @@
     }
 
     /**
-     * Возвращает случайный путь к System AI голосу
+     * Returns a random path to a System AI voice
      * @returns {string|null}
      */
     static _getRandomSystemAIVoicePath() {
@@ -192,11 +201,11 @@
 
         const index = Math.floor(Math.random() * this.SYSTEM_AI_VOICE_FILES.length);
         const file = this.SYSTEM_AI_VOICE_FILES[index];
-        return `modules/${this.MODULE_ID}/template/sysai/${file}`;
+        return `modules/${this.MODULE_ID}/template/tenna/${file}`;
     }
 
     /**
-     * Воспроизводит короткий случайный System AI звук с ограничением частоты/перекрытия
+     * Plays a short random System AI sound with frequency/overlap limits
      * @param {number} volume
      */
     static _playSystemAIVoice(volume) {
@@ -227,9 +236,45 @@
     }
 
     /**
-     * Нормализует пути к ассетам после смены ID модуля
-     * @param {string} path - Исходный путь
-     * @returns {string} Нормализованный путь
+     * Plays a short typing blip as one-shot audio with overlap and cadence limits
+     * @param {string} soundPath
+     * @param {number} volume
+     */
+    static _playTypingBlip(soundPath, volume) {
+        if (!soundPath) return;
+
+        const now = performance.now();
+        const jitteredMinInterval = Math.max(
+            12,
+            this.TYPING_BLIP_MIN_INTERVAL_MS + Math.round((Math.random() - 0.5) * 10)
+        );
+
+        if (now - this.lastTypingBlipPlayAt < jitteredMinInterval) return;
+        if (this.activeTypingSounds.size >= this.TYPING_BLIP_MAX_CONCURRENT) return;
+
+        const blip = new Audio(soundPath);
+        blip.playbackRate = 0.92 + Math.random() * 0.18;
+        blip.volume = Math.min(1, Math.max(0, volume * (0.92 + Math.random() * 0.16)));
+        this.activeTypingSounds.add(blip);
+        this.lastTypingBlipPlayAt = now;
+
+        const cleanup = () => {
+            this.activeTypingSounds.delete(blip);
+            blip.removeEventListener('ended', cleanup);
+            blip.removeEventListener('error', cleanup);
+        };
+
+        blip.addEventListener('ended', cleanup, { once: true });
+        blip.addEventListener('error', cleanup, { once: true });
+        blip.play().catch(() => {
+            cleanup();
+        });
+    }
+
+    /**
+     * Normalizes asset paths after module ID change
+     * @param {string} path - Source path
+     * @returns {string} Normalized path
      */
     static _normalizeAssetPath(path) {
         if (!path || typeof path !== 'string') return path;
@@ -249,9 +294,36 @@
     }
 
     /**
-     * Извлекает данные формы из диалога настроек коммуникатора
+     * Returns next typewriter delay for the current character class
+     * @param {Object} args
+     * @param {'regular'|'minorPunctuation'|'sentenceEnd'|'lineBreak'} args.charClass
+     * @param {number} args.effectiveTypingSpeed
+     * @param {number} args.sentencePauseDelay
+     * @returns {number}
+     */
+    static _getTypewriterDelay({ charClass, effectiveTypingSpeed, sentencePauseDelay }) {
+        const speed = Math.max(0, Math.min(180, Number(effectiveTypingSpeed) || 0));
+        const minDelay = 12;
+
+        const classBaseDelay = {
+            regular: 190,
+            minorPunctuation: 260,
+            sentenceEnd: 340,
+            lineBreak: 340
+        };
+
+        const base = classBaseDelay[charClass] ?? classBaseDelay.regular;
+        const sentenceTail = (charClass === 'sentenceEnd' || charClass === 'lineBreak')
+            ? Math.max(0, Number(sentencePauseDelay) || 0)
+            : 0;
+        const lineBreakExtra = charClass === 'lineBreak' ? 40 : 0;
+        return Math.max(base - speed + sentenceTail + lineBreakExtra, minDelay);
+    }
+
+    /**
+     * Extracts form data from the communicator settings dialog
      * @param {HTMLFormElement} form
-     * @returns {Object} Данные формы
+     * @returns {Object} Form data
      */
     static _extractFormData(form) {
         const typingSpeedInput = form.querySelector('#typing-speed-input');
@@ -277,10 +349,10 @@
     }
 
     /**
-     * Валидирует данные формы для отправки сообщения
-     * @param {Object} data - Данные формы
-     * @param {boolean} requireMessage - Требовать ли наличие сообщения
-     * @returns {boolean} Валидны ли данные
+     * Validates form data for message sending
+     * @param {Object} data - Form data
+     * @param {boolean} requireMessage - Whether to require a message
+     * @returns {boolean} Whether data is valid
      */
     static _validateFormData(data, requireMessage = true) {
         if (!data.characterName.trim()) {
@@ -298,8 +370,8 @@
     }
 
     /**
-     * Проверяет, существует ли макрос с указанным именем
-     * @param {string} name - Имя макроса
+     * Checks whether a macro with the specified name exists
+     * @param {string} name - Macro name
      * @returns {boolean}
      */
     static _isMacroNameTaken(name) {
@@ -307,9 +379,9 @@
     }
 
     /**
-     * Создаёт обработчик FilePicker для выбора файлов
-     * @param {HTMLInputElement} input - Поле ввода пути
-     * @param {'image'|'audio'} type - Тип файла
+     * Creates a FilePicker handler for file selection
+     * @param {HTMLInputElement} input - Path input field
+     * @param {'image'|'audio'} type - File type
      * @returns {void}
      */
     static _setupFilePicker(input, type) {
@@ -340,28 +412,28 @@
     }
 
     /**
-     * Вычисляет скорость печати на основе длительности аудиофайла и длины текста
-     * @param {number} audioDuration - Длительность аудио в секундах
-     * @param {number} textLength - Длина текста в символах
-     * @returns {number} - Скорость печати (0-180)
+     * Calculates typing speed based on audio file duration and text length
+     * @param {number} audioDuration - Audio duration in seconds
+     * @param {number} textLength - Text length in characters
+     * @returns {number} - Typing speed (0-180)
      */
     static _calculateTypingSpeedFromAudio(audioDuration, textLength) {
         if (audioDuration <= 0 || textLength <= 0) {
             return this.settings.globalTypingSpeed;
         }
 
-        // Вычисляем задержку на символ в мс
+        // Calculate delay per character in ms
         const delayPerChar = (audioDuration * 1000) / textLength;
         this.debug(`Auto speed calculation: audio=${audioDuration}s, text=${textLength} chars, delay=${delayPerChar}ms/char`);
 
-        // Базовая формула: delay = baseDelay - typingSpeed
-        // baseDelay примерно 200 для обычных символов
-        // Нам нужно: typingSpeed = baseDelay - delayPerChar
-        // Но учитываем, что знаки препинания дают большую задержку
+        // Base formula: delay = baseDelay - typingSpeed
+        // baseDelay is about 200 for regular characters
+        // We need: typingSpeed = baseDelay - delayPerChar
+        // But account for punctuation causing a longer delay
         const baseDelay = 200;
         let calculatedSpeed = Math.round(baseDelay - delayPerChar);
 
-        // Ограничиваем диапазон
+        // Clamp the range
         calculatedSpeed = Math.max(50, Math.min(180, calculatedSpeed));
 
         this.debug(`Calculated typing speed: ${calculatedSpeed}`);
@@ -369,9 +441,9 @@
     }
 
     /**
-     * Получает длительность аудиофайла
-     * @param {string} audioPath - Путь к аудиофайлу
-     * @returns {Promise<number>} - Длительность в секундах
+     * Gets audio file duration
+     * @param {string} audioPath - Path to audio file
+     * @returns {Promise<number>} - Duration in seconds
      */
     static async _getAudioDuration(audioPath) {
         const normalizedPath = this._normalizeAssetPath(audioPath);
@@ -399,7 +471,7 @@
             audio.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
             audio.addEventListener('error', onError, { once: true });
 
-            // Устанавливаем таймаут
+            // Set timeout
             setTimeout(() => {
                 cleanup();
                 reject(new Error('Audio loading timeout'));
@@ -407,10 +479,10 @@
         });
     }
 
-    // ─── DIALOG ────────────────────────────────────────────────────
+    // --- DIALOG ----------------------------------------------------
 
     /**
-     * Открывает диалоговое окно настроек коммуникатора
+     * Opens the communicator settings dialog window
      */
     static async openCommunicatorSettings() {
         this._cacheSettings();
@@ -616,13 +688,13 @@
     }
 
     /**
-     * Настраивает обработчики событий внутри диалога
-     * @param {jQuery} html - jQuery-обёртка диалога
+     * Sets up event handlers inside the dialog
+     * @param {jQuery} html - jQuery wrapper of the dialog
      */
     static _renderDialogHandlers(html) {
         const dialog = html[0];
 
-        // FilePicker для портрета
+        // FilePicker for portrait
         const portraitInput = dialog.querySelector('#portrait-path');
         dialog.querySelector('#select-portrait').addEventListener('click', () => {
             new FilePicker({
@@ -638,7 +710,7 @@
             }).browse();
         });
 
-        // FilePicker для звука и озвучки и картинки
+        // FilePicker for sound, voiceover, and image
         this._setupFilePicker(dialog.querySelector('#sound-path'), 'audio');
         this._setupFilePicker(dialog.querySelector('#voiceover-path'), 'audio');
         this._setupFilePicker(dialog.querySelector('#image-path'), 'image');
@@ -661,7 +733,7 @@
         systemAIVoiceCheckbox?.addEventListener('change', updateSoundControlsState);
         updateSoundControlsState();
 
-        // Обработчик чекбокса "Использовать глобальную скорость"
+        // Handler for the "Use global speed" checkbox
         const useGlobalCheckbox = dialog.querySelector('#use-global-speed');
         const typingSpeedRow = dialog.querySelector('#typing-speed-row');
         const typingSpeedInput = dialog.querySelector('#typing-speed-input');
@@ -677,12 +749,12 @@
             }
         });
 
-        // Обновление отображения скорости печати
+        // Update typing speed display
         typingSpeedInput.addEventListener('input', () => {
             typingSpeedDisplay.textContent = typingSpeedInput.value;
         });
 
-        // Кнопка "Авто" для автоматического расчёта скорости
+        // "Auto" button for automatic speed calculation
         const autoSpeedBtn = dialog.querySelector('#auto-speed-btn');
         const voiceoverInput = dialog.querySelector('#voiceover-path');
         const messageInput = dialog.querySelector('#message-input');
@@ -707,7 +779,7 @@
 
                 const duration = await this._getAudioDuration(voiceoverPath);
 
-                // Проверка минимальной длительности озвучки (3 секунды)
+                // Check minimum voiceover duration (3 seconds)
                 if (duration < 3) {
                     ui.notifications.warn(game.i18n.localize('LANCER.Settings.Warnings.VoiceoverTooShort'));
                     autoSpeedBtn.disabled = false;
@@ -718,12 +790,12 @@
                 const textLength = messageText.trim().length;
                 const calculatedSpeed = this._calculateTypingSpeedFromAudio(duration, textLength);
 
-                // Снимаем галочку "Использовать глобальную скорость"
+                // Uncheck "Use global speed"
                 useGlobalCheckbox.checked = false;
                 typingSpeedRow.style.opacity = '1';
                 typingSpeedRow.style.pointerEvents = 'auto';
 
-                // Устанавливаем вычисленную скорость
+                // Set calculated speed
                 typingSpeedInput.value = calculatedSpeed;
                 typingSpeedDisplay.textContent = calculatedSpeed;
 
@@ -737,14 +809,14 @@
             }
         });
 
-        // Обработчик изменения шрифта
+        // Font change handler
         const fontFamilySelect = dialog.querySelector('#font-family');
         fontFamilySelect.addEventListener('change', () => {
             document.documentElement.style.setProperty('--message-font', fontFamilySelect.value);
             updatePreview();
         });
 
-        // Обновление отображения размера шрифта
+        // Update font size display
         const fontSizeInput = dialog.querySelector('#font-size-input');
         const fontSizeDisplay = dialog.querySelector('#font-size-display');
         fontSizeInput.addEventListener('input', () => {
@@ -753,7 +825,7 @@
             document.documentElement.style.setProperty('--message-font-size', `${size}px`);
         });
 
-        // Обновление отображения ширины окна сообщения
+        // Update message window width display
         const messageWidthInput = dialog.querySelector('#message-width-input');
         const messageWidthDisplay = dialog.querySelector('#message-width-display');
         messageWidthInput.addEventListener('input', () => {
@@ -763,7 +835,7 @@
             document.documentElement.style.setProperty('--message-left', `${(100 - width) / 2}%`);
         });
 
-        // Предпросмотр стилей
+        // Style preview
         const styleSelect = dialog.querySelector('#message-style');
         const preview = dialog.querySelector('#style-preview');
 
@@ -808,8 +880,8 @@
     }
 
     /**
-     * Сохраняет настройки из диалога
-     * @param {Object} data - Данные формы
+     * Saves settings from the dialog
+     * @param {Object} data - Form data
      */
     static _saveDialogSettings(data) {
         game.settings.set('lancer-communicator-dcw', 'lastCharacterName', data.characterName);
@@ -824,8 +896,8 @@
     }
 
     /**
-     * Обработчик закрытия диалога — сохраняет настройки
-     * @param {jQuery} html - jQuery-обёртка диалога
+     * Dialog close handler - saves settings
+     * @param {jQuery} html - jQuery wrapper of the dialog
      */
     static _closeDialogHandler(html) {
         const formElement = html[0]?.querySelector('form');
@@ -853,19 +925,19 @@
         if (postImageToChat !== undefined) game.settings.set('lancer-communicator-dcw', 'postImageToChat', postImageToChat);
     }
 
-    // ─── MESSAGING ─────────────────────────────────────────────────
+    // --- MESSAGING -------------------------------------------------
 
     /**
-     * Отправляет сообщение коммуникатора всем подключённым клиентам
-     * @param {string} characterName - Имя персонажа
-     * @param {string} portraitPath - Путь к изображению портрета
-     * @param {string} message - Текст сообщения
-     * @param {string} soundPath - Путь к звуковому файлу (опционально)
-     * @param {string} voiceoverPath - Путь к файлу озвучки (опционально)
-     * @param {string} style - Стиль сообщения
-     * @param {number} fontSize - Размер шрифта в пикселях
-     * @param {string|null} fontFamily - Семейство шрифта
-     * @param {number|null} typingSpeed - Скорость печати (null = глобальная)
+     * Sends a communicator message to all connected clients
+     * @param {string} characterName - Character name
+     * @param {string} portraitPath - Path to the portrait image
+     * @param {string} message - Message text
+     * @param {string} soundPath - Path to sound file (optional)
+     * @param {string} voiceoverPath - Path to voiceover file (optional)
+     * @param {string} style - Message style
+     * @param {number} fontSize - Font size in pixels
+     * @param {string|null} fontFamily - Font family
+     * @param {number|null} typingSpeed - ???????? ?????? (null = ??????????)
      */
     static sendCommunicatorMessage(characterName, portraitPath, message, soundPath = '', voiceoverPath = '', imagePath = '', style = 'undertale', fontSize = 18, fontFamily = null, typingSpeed = null, messageWidth = null, postToChat = null, postImageToChat = null, systemAIVoice = false) {
         const effectiveFont = fontFamily || this.settings.fontFamily;
@@ -896,12 +968,12 @@
 
         this.debug('Sending message:', messageData);
 
-        // Сохраняем сообщение для последующего экспорта
+        // Save message for later export
         this.savedMessages.push(messageData);
 
-        // Показываем локально
+        // Show locally
         this.showCommunicatorMessage(messageData).catch(console.error);
-        // Отправляем остальным клиентам
+        // Send to other clients
         game.socket.emit('module.lancer-communicator-dcw', {
             type: 'showMessage',
             data: messageData
@@ -910,9 +982,9 @@
     }
 
     /**
-     * Безопасно подготавливает текст для рендера в чате
-     * @param {string} text - Исходный текст
-     * @returns {string} HTML с сохранёнными переносами
+     * Safely prepares text for rendering in chat
+     * @param {string} text - Source text
+     * @returns {string} HTML with preserved line breaks
      */
     static _applyTextShake(text) {
         return String(text)
@@ -922,8 +994,8 @@
     }
 
     /**
-     * Отправляет копию сообщения коммуникатора в чат Foundry
-     * @param {Object} data - Данные сообщения
+     * Sends a copy of communicator message to Foundry chat
+     * @param {Object} data - Message data
      */
     static async _postToChat(data, postToChatOverride = null) {
         const enabled = postToChatOverride !== null ? postToChatOverride : game.settings.get('lancer-communicator-dcw', 'postToChat');
@@ -1011,8 +1083,8 @@
     }
 
     /**
-     * Отображает анимированное сообщение коммуникатора на экране
-     * @param {Object} data - Данные сообщения
+     * Displays animated communicator message on screen
+     * @param {Object} data - Message data
      * @returns {Promise<void>}
      */
     static async showCommunicatorMessage(data) {
@@ -1024,15 +1096,15 @@
 
         this.debug('Showing message:', { characterName, message: message?.substring(0, 50) + '...', typingSpeed });
 
-        // Прерываем текущее сообщение, если оно есть
+        // Interrupt current message if present
         this._stopCurrentMessage();
 
-        // Кэшируем настройки, используемые в цикле
+        // Cache settings used in the loop
         this._cacheSettings();
         const effectiveTypingSpeed = this._getEffectiveTypingSpeed(typingSpeed);
         const { voiceVolume } = this.settings;
 
-        // Создаём DOM
+        // Create DOM
         const container = document.createElement('div');
         container.id = 'lancer-communicator-message';
         container.className = `top-screen style-${style || 'undertale'}`;
@@ -1051,11 +1123,11 @@
         `;
 
         document.body.appendChild(container);
-        this.currentContainer = container; // Сохраняем ссылку
+        this.currentContainer = container; // Store reference
 
         const messageTextEl = container.querySelector('.lcm-message-text');
 
-        // CSS-переменные для шрифта и ширины
+        // CSS variables for font and width
         if (typeof fontSize === 'number') {
             container.style.setProperty('--message-font-size', `${fontSize}px`);
         }
@@ -1065,9 +1137,9 @@
         container.style.setProperty('--message-width', `${effectiveWidth}%`);
         container.style.setProperty('--message-left', `${(100 - effectiveWidth) / 2}%`);
 
-        // Предзагрузка аудио
-        let soundInstance = null;
-        let voiceoverAudio = null; // Отдельная ссылка на озвучку
+        // Audio preloading
+        let hasTypingSound = false;
+        let voiceoverAudio = null; // Separate reference to voiceover
 
         if (normalizedVoiceoverPath) {
             try {
@@ -1077,7 +1149,7 @@
 
                 await this._waitForAudio(voiceoverAudio, 5000);
                 voiceoverAudio.play();
-                this.currentAudio = voiceoverAudio; // Сохраняем ссылку на активное аудио
+                this.currentAudio = voiceoverAudio; // Store reference to active audio
             } catch (error) {
                 console.error('Lancer Communicator | Voiceover error:', error);
                 voiceoverAudio = null;
@@ -1086,17 +1158,19 @@
 
         if (normalizedSoundPath && !normalizedVoiceoverPath && !systemAIVoice) {
             try {
-                soundInstance = new Audio(normalizedSoundPath);
-                await this._waitForAudio(soundInstance, 2000);
+                const soundPreload = new Audio(normalizedSoundPath);
+                await this._waitForAudio(soundPreload, 2000);
+                hasTypingSound = true;
             } catch (error) {
                 console.error('Lancer Communicator | Sound preload error:', error);
-                soundInstance = null;
+                hasTypingSound = false;
             }
         }
 
-        // Эффект печатной машинки
-        const punctuationPattern = /[\.,!?;:]/;
+        // Typewriter effect
         const sentenceEndPattern = /[.!?]/;
+        const minorPunctuationPattern = /[,;:]/;
+        const punctuationRunPattern = /[.!?,;:]/;
         const silentCharPattern = /[\s\.,!?;:-]/;
         const sentencePauseDelay = Math.max(0, Number(this.settings.sentencePauseDelay) || 0);
 
@@ -1106,12 +1180,34 @@
 
             const typeWriter = async () => {
                 if (i < message.length) {
-                    const remaining = message.substring(i);
-                    const brMatch = remaining.match(/^<br\s*\/?>/i);
-                    if (brMatch) {
-                        messageTextEl.appendChild(document.createElement('br'));
-                        i += brMatch[0].length;
-                        const delay = Math.max(100 - effectiveTypingSpeed, 10);
+                    // Consume consecutive line breaks as one timing event to avoid pause stacking.
+                    let consumedLineBreak = false;
+                    while (i < message.length) {
+                        const remaining = message.substring(i);
+                        const brMatch = remaining.match(/^<br\s*\/?>/i);
+                        if (brMatch) {
+                            messageTextEl.appendChild(document.createElement('br'));
+                            i += brMatch[0].length;
+                            consumedLineBreak = true;
+                            continue;
+                        }
+
+                        if (message.charAt(i) === '\n') {
+                            messageTextEl.appendChild(document.createElement('br'));
+                            i += 1;
+                            consumedLineBreak = true;
+                            continue;
+                        }
+
+                        break;
+                    }
+
+                    if (consumedLineBreak) {
+                        const delay = this._getTypewriterDelay({
+                            charClass: 'lineBreak',
+                            effectiveTypingSpeed,
+                            sentencePauseDelay
+                        });
                         setTimeout(typeWriter, delay);
                         return;
                     }
@@ -1119,58 +1215,51 @@
                     const currentChar = message.charAt(i);
                     i++;
 
-                    if (currentChar === '\n') {
-                        messageTextEl.appendChild(document.createElement('br'));
-                        const delay = Math.max(100 - effectiveTypingSpeed, 10);
-                        setTimeout(typeWriter, delay);
-                        return;
-                    }
-
                     messageTextEl.appendChild(document.createTextNode(currentChar));
 
-                    // Звук на каждый символ (если нет озвучки)
+                    // Sound for each character (if there is no voiceover)
                     if (!voiceoverAudio && !silentCharPattern.test(currentChar)) {
                         if (systemAIVoice) {
                             systemAIAudibleCharCount += 1;
-                            if (systemAIAudibleCharCount % this.SYSTEM_AI_PLAY_EVERY_NTH_CHAR === 1) {
+                            const playEvery = Math.max(1, Number(this.SYSTEM_AI_PLAY_EVERY_NTH_CHAR) || 1);
+                            if (systemAIAudibleCharCount % playEvery === 0) {
                                 this._playSystemAIVoice(voiceVolume);
                             }
-                        } else if (soundInstance) {
-                            soundInstance.currentTime = 0;
-                            soundInstance.playbackRate = 0.85 + Math.random() * 0.3;
-                            soundInstance.volume = voiceVolume;
-                            try {
-                                await soundInstance.play();
-                            } catch (e) {
-                                // Игнорируем ошибки автовоспроизведения
-                            }
+                        } else if (hasTypingSound) {
+                            this._playTypingBlip(normalizedSoundPath, voiceVolume);
                         }
                     }
 
-                    // Задержка: знаки препинания — дольше, остальные — по скорости
-                    const baseDelay = punctuationPattern.test(currentChar) ? 350 : 200;
+                    // Delay: use token classes and smooth punctuation runs for natural cadence.
                     const nextVisibleChar = (i < message.length) ? message.charAt(i) : '';
-                    const shouldApplySentencePause = sentenceEndPattern.test(currentChar)
-                        && !sentenceEndPattern.test(nextVisibleChar)
-                        && sentencePauseDelay > 0;
-                    const delay = Math.max(baseDelay - effectiveTypingSpeed, 10)
-                        + (shouldApplySentencePause ? sentencePauseDelay : 0);
-                    setTimeout(typeWriter, delay);
-                } else {
-                    // Сообщение завершено — затухаем только звук набора (не озвучку!)
-                    if (soundInstance) {
-                        this._fadeOutAudio(soundInstance, 800);
+                    const isSentenceEnd = sentenceEndPattern.test(currentChar);
+                    const isSentenceRunContinuation = isSentenceEnd && sentenceEndPattern.test(nextVisibleChar);
+                    const isMinorPunctuation = minorPunctuationPattern.test(currentChar);
+                    const isMinorRunContinuation = isMinorPunctuation && punctuationRunPattern.test(nextVisibleChar);
+
+                    let charClass = 'regular';
+                    if (isSentenceEnd) {
+                        charClass = isSentenceRunContinuation ? 'regular' : 'sentenceEnd';
+                    } else if (isMinorPunctuation) {
+                        charClass = isMinorRunContinuation ? 'regular' : 'minorPunctuation';
                     }
 
-                    // Показываем картинку если есть
+                    const delay = this._getTypewriterDelay({
+                        charClass,
+                        effectiveTypingSpeed,
+                        sentencePauseDelay
+                    });
+                    setTimeout(typeWriter, delay);
+                } else {
+                    // Show image if present
                     const imageEl = container.querySelector('.lcm-message-image');
                     if (imageEl) {
                         imageEl.style.display = 'block';
                     }
 
-                    // Ждём завершения озвучки + 3 секунды паузы перед закрытием рамки
+                    // Wait for voiceover completion + 3 seconds before closing frame
                     const startCollapsing = () => {
-                        // Очищаем ссылки перед удалением
+                        // Clear references before removal
                         this.currentAudio = null;
                         this.currentContainer = null;
                         container.classList.add('collapsing');
@@ -1179,15 +1268,15 @@
                     };
 
                     const startCollapsingWithPause = () => {
-                        // 3 секунды паузы после окончания озвучки
+                        // 3-second pause after voiceover ends
                         setTimeout(startCollapsing, 3000);
                     };
 
                     if (voiceoverAudio && !voiceoverAudio.paused) {
-                        // Ждём завершения озвучки, потом пауза 3 сек, потом схлопывание
+                        // Wait for voiceover completion, then 3-second pause, then collapse
                         voiceoverAudio.addEventListener('ended', startCollapsingWithPause, { once: true });
                     } else {
-                        // Если озвучки нет — пауза 3 сек и схлопываем
+                        // If there is no voiceover, pause 3 seconds and collapse
                         setTimeout(startCollapsing, 3000);
                     }
                 }
@@ -1198,9 +1287,9 @@
     }
 
     /**
-     * Плавно затухает звук за указанное время
+     * Smoothly fades out sound over specified time
      * @param {HTMLAudioElement} audio
-     * @param {number} durationMs - Длительность затухания в миллисекундах
+     * @param {number} durationMs - Fade duration in milliseconds
      */
     static _fadeOutAudio(audio, durationMs = 800) {
         if (!audio || audio.paused) return;
@@ -1224,9 +1313,9 @@
     }
 
     /**
-     * Ожидает готовности аудио к воспроизведению
+     * Waits for audio to be ready for playback
      * @param {HTMLAudioElement} audio
-     * @param {number} timeoutMs - Таймаут в миллисекундах
+     * @param {number} timeoutMs - Timeout in milliseconds
      * @returns {Promise<void>}
      */
     static _waitForAudio(audio, timeoutMs = 2000) {
@@ -1251,10 +1340,10 @@
         });
     }
 
-    // ─── MACROS ────────────────────────────────────────────────────
+    // --- MACROS ----------------------------------------------------
 
     /**
-     * Создаёт макрос для отправки сообщения коммуникатора
+     * Creates a macro for sending communicator message
      */
     static async createCommunicatorMacro(characterName, portraitPath, message, soundPath, voiceoverPath, imagePath, style, fontSize, fontFamily = null, typingSpeed = null, messageWidth = null, postImageToChat = null, systemAIVoice = false) {
         if (!game.user.can('MACRO_SCRIPT')) {
@@ -1347,7 +1436,7 @@
     }
 
     /**
-     * Создаёт быстрый макрос коммуникатора с запросом сообщения при запуске
+     * Creates a quick communicator macro that prompts for message on run
      */
     static async createQuickCommunicatorMacro(characterName, portraitPath, soundPath, voiceoverPath, imagePath, style, fontSize, fontFamily = null, typingSpeed = null, messageWidth = null, postImageToChat = null, systemAIVoice = false) {
         if (!game.user.can('MACRO_SCRIPT')) {
@@ -1363,7 +1452,7 @@
         const globalTypingSpeed = game.settings.get('lancer-communicator-dcw', 'globalTypingSpeed');
         const globalMessageWidth = game.settings.get('lancer-communicator-dcw', 'globalMessageWidth') || 30;
 
-        // Генерируем опции стилей для селекта
+        // Generate style options for select
         const styleOptions = this.STYLES.map(s =>
             `<option value="${s.value}" ${style === s.value ? 'selected' : ''}>${game.i18n.localize(s.i18nKey) || s.value}</option>`
         ).join('');
@@ -1393,7 +1482,7 @@
                             return;
                         }
 
-                        // Экранируем строки для вставки в шаблон
+                        // Escape strings for template insertion
                         const escapedCharName = characterName.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/`/g, '\\`');
                         const escapedPortraitPath = portraitPath.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/`/g, '\\`');
                         const escapedSoundPath = soundPath.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/`/g, '\\`');
@@ -1473,7 +1562,7 @@
             render: (html) => {
                 const dialog = html[0];
                 
-                // Обработчик чекбокса глобальной скорости
+                // Global speed checkbox handler
                 const useGlobalCheckbox = dialog.querySelector('#quick-use-global-speed');
                 const typingSpeedRow = dialog.querySelector('#quick-typing-speed-row');
                 const typingSpeedInput = dialog.querySelector('#quick-typing-speed-input');
@@ -1493,14 +1582,14 @@
                     typingSpeedDisplay.textContent = typingSpeedInput.value;
                 });
                 
-                // Обработчик размера шрифта
+                // Font size handler
                 const fontSizeInput = dialog.querySelector('#quick-font-size-input');
                 const fontSizeDisplay = dialog.querySelector('#quick-font-size-display');
                 fontSizeInput.addEventListener('input', () => {
                     fontSizeDisplay.textContent = fontSizeInput.value + 'px';
                 });
                 
-                // Обработчик ширины окна сообщения
+                // Message window width handler
                 const messageWidthInput = dialog.querySelector('#quick-message-width-input');
                 const messageWidthDisplay = dialog.querySelector('#quick-message-width-display');
                 messageWidthInput.addEventListener('input', () => {
@@ -1558,11 +1647,11 @@
         }, { classes: ['dialog', 'lancer-communicator-dialog'] }).render(true);
     }
 
-    // ─── UTILITIES ─────────────────────────────────────────────────
+    // --- UTILITIES -------------------------------------------------
 
     /**
-     * Проверяет существование файла по URL
-     * @param {string} path - URL файла
+     * Checks whether a file exists by URL
+     * @param {string} path - File URL
      * @returns {Promise<boolean>}
      */
     static async _validateFile(path) {
@@ -1582,14 +1671,14 @@
         }
     }
     /**
-     * Открывает диалог просмотра и экспорта сохранённых сообщений
+     * Opens dialog for viewing and exporting saved messages
      */
     static openSaveMessagesDialog() {
         const isGM = game.user.isGM;
         const allowAccess = isGM || (game.settings.get('lancer-communicator-dcw', 'allowPlayersAccess') ?? true);
 
         if (!allowAccess) {
-            ui.notifications.warn(game.i18n.localize('LANCER.Settings.Warnings.NoAccessPermission') || "Você não tem permissão para acessar os registros.");
+            ui.notifications.warn(game.i18n.localize('LANCER.Settings.Warnings.NoAccessPermission') || "Voc� n�o tem permiss�o para acessar os registros.");
             return;
         }
 
@@ -1701,13 +1790,13 @@
 
     /**
     /**
-     * Скачивает сохранённые сообщения как файл
-     * @param {'json'|'txt'} format - Формат файла
+     * Downloads saved messages as a file
+     * @param {'json'|'txt'} format - Form? ?????
      */
     static _downloadMessages(format) {
         const messages = this.savedMessages;
 
-        // Verificação de segurança extra
+        // Verifica��o de seguran�a extra
         if (!messages || messages.length === 0) {
             ui.notifications.warn(game.i18n.localize('LANCER.Settings.ChatLog.Empty'));
             return;
@@ -1720,7 +1809,7 @@
             mime = 'application/json';
             ext = 'json';
         } else {
-            // Formato TXT com limpeza de HTML e melhor espaçamento
+            // Formato TXT com limpeza de HTML e melhor espa�amento
             content = messages.map(m => {
                 const ts = m.timestamp ? new Date(m.timestamp).toLocaleString() : '--';
                 const charName = m.characterName || game.i18n.localize('LANCER.Unknown') || 'Unknown';
@@ -1739,11 +1828,11 @@
         const date = new Date().toISOString().slice(0, 10);
         const filename = `communicator-log-${date}.${ext}`;
 
-        // Utiliza o helper nativo do Foundry VTT se disponível (muito mais limpo)
+        // Utiliza o helper nativo do Foundry VTT se dispon�vel (muito mais limpo)
         if (typeof saveDataToFile === 'function') {
             saveDataToFile(content, mime, filename);
         } else {
-            // Fallback clássico caso a função nativa falhe/não exista
+            // Fallback cl�ssico caso a fun��o nativa falhe/n�o exista
             const blob = new Blob([content], { type: mime });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
