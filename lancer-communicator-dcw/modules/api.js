@@ -30,6 +30,7 @@ export function registerAPI() {
          * @param {string|null} fontFamily - Семейство шрифта
          * @param {number|null} typingSpeed - Скорость печати (null = использовать глобальную)
          * @param {number|null} messageWidth - Ширина окна сообщения в процентах (20-90, null = глобальная)
+         * @param {boolean} systemAIVoice - Использовать случайный голос из template/sysai
          */
         sendCommunicatorMessage: LancerCommunicator.sendCommunicatorMessage.bind(LancerCommunicator),
 

@@ -210,4 +210,12 @@ export function registerSettings() {
         type: String,
         default: ''
     });
+
+    game.settings.register(MODULE, 'lastSystemAIVoice', {
+        name: game.i18n.localize('LANCER.Settings.SystemAIVoice'),
+        scope: 'client',
+        config: false,
+        type: Boolean,
+        default: false
+    });
 }

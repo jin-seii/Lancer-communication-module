@@ -1,6 +1,15 @@
 ﻿export class LancerCommunicator {
     static MODULE_ID = 'lancer-communicator-dcw';
     static LEGACY_MODULE_ID = 'lancer-communicator';
+    static SYSTEM_AI_VOICE_FILES = [
+        'snd_wngdng1.wav',
+        'snd_wngdng2.wav',
+        'snd_wngdng3.wav',
+        'snd_wngdng4.wav',
+        'snd_wngdng5.wav',
+        'snd_wngdng6.wav',
+        'snd_wngdng7.wav'
+    ];
 
     /** Кэшированные настройки модуля */
     static settings = {
@@ -150,6 +159,20 @@
     }
 
     /**
+     * Возвращает случайный путь к System AI голосу
+     * @returns {string|null}
+     */
+    static _getRandomSystemAIVoicePath() {
+        if (!Array.isArray(this.SYSTEM_AI_VOICE_FILES) || this.SYSTEM_AI_VOICE_FILES.length === 0) {
+            return null;
+        }
+
+        const index = Math.floor(Math.random() * this.SYSTEM_AI_VOICE_FILES.length);
+        const file = this.SYSTEM_AI_VOICE_FILES[index];
+        return `modules/${this.MODULE_ID}/template/sysai/${file}`;
+    }
+
+    /**
      * Нормализует пути к ассетам после смены ID модуля
      * @param {string} path - Исходный путь
      * @returns {string} Нормализованный путь
@@ -188,6 +211,7 @@
             soundPath: this._normalizeAssetPath(this._getFormValue(form, '#sound-path')),
             voiceoverPath: this._normalizeAssetPath(this._getFormValue(form, '#voiceover-path')),
             imagePath: this._normalizeAssetPath(this._getFormValue(form, '#image-path')),
+            systemAIVoice: form.querySelector('#system-ai-voice')?.checked ?? game.settings.get('lancer-communicator-dcw', 'lastSystemAIVoice') ?? false,
             style: this._getFormValue(form, '#message-style'),
             fontFamily: this._getFormValue(form, '#font-family'),
             fontSize: Number(this._getFormValue(form, '#font-size-input')) || 18,
@@ -343,6 +367,7 @@
         const lastSound = this._normalizeAssetPath(game.settings.get('lancer-communicator-dcw', 'lastSound'));
         const lastVoiceover = this._normalizeAssetPath(game.settings.get('lancer-communicator-dcw', 'lastVoiceover'));
         const lastImage = this._normalizeAssetPath(game.settings.get('lancer-communicator-dcw', 'lastImage'));
+        const lastSystemAIVoice = game.settings.get('lancer-communicator-dcw', 'lastSystemAIVoice') ?? false;
         const lastStyle = game.settings.get('lancer-communicator-dcw', 'lastMessageStyle') || 'undertale';
         const fontSize = game.settings.get('lancer-communicator-dcw', 'messageFontSize');
         const lastTypingSpeed = game.settings.get('lancer-communicator-dcw', 'lastTypingSpeed');
@@ -395,6 +420,13 @@
                             <button type="button" id="select-sound">${game.i18n.localize('LANCER.Settings.SelectSound')}</button>
                             <button type="button" id="clear-sound">${game.i18n.localize('LANCER.Settings.ClearSound')}</button>
                         </div>
+                    </div>
+                    <div class="lcm-form-group lcm-post-to-chat-row">
+                        <label class="lcm-toggle-label">
+                            <input type="checkbox" id="system-ai-voice" ${lastSystemAIVoice ? 'checked' : ''}>
+                            <span>${game.i18n.localize('LANCER.Settings.SystemAIVoice')}</span>
+                        </label>
+                        <small class="lcm-hint">${game.i18n.localize('LANCER.Settings.SystemAIVoiceHint')}</small>
                     </div>
                     <div class="lcm-form-group">
                         <label>${game.i18n.localize('LANCER.Settings.VoiceoverSelect')}</label>
@@ -477,7 +509,7 @@
                             data.characterName, data.portraitPath, data.message,
                             data.soundPath, data.voiceoverPath, data.imagePath, data.style,
                             data.fontSize, data.fontFamily, data.typingSpeed,
-                            null, data.postToChat, data.postImageToChat
+                            null, data.postToChat, data.postImageToChat, data.systemAIVoice
                         );
                     }
                 },
@@ -496,7 +528,7 @@
                         await this.createCommunicatorMacro(
                             data.characterName, data.portraitPath, data.message,
                             data.soundPath, data.voiceoverPath, data.imagePath, data.style,
-                            data.fontSize, data.fontFamily, data.typingSpeed, null, data.postImageToChat
+                            data.fontSize, data.fontFamily, data.typingSpeed, null, data.postImageToChat, data.systemAIVoice
                         );
                     }
                 },
@@ -514,7 +546,7 @@
 
                         await this.createQuickCommunicatorMacro(
                             data.characterName, data.portraitPath, data.soundPath,
-                            data.voiceoverPath, data.imagePath, data.style, data.fontSize, data.fontFamily, data.typingSpeed, null, data.postImageToChat
+                            data.voiceoverPath, data.imagePath, data.style, data.fontSize, data.fontFamily, data.typingSpeed, null, data.postImageToChat, data.systemAIVoice
                         );
                     }
                 },
@@ -556,6 +588,24 @@
         this._setupFilePicker(dialog.querySelector('#sound-path'), 'audio');
         this._setupFilePicker(dialog.querySelector('#voiceover-path'), 'audio');
         this._setupFilePicker(dialog.querySelector('#image-path'), 'image');
+
+        const systemAIVoiceCheckbox = dialog.querySelector('#system-ai-voice');
+        const soundPathInput = dialog.querySelector('#sound-path');
+        const selectSoundBtn = dialog.querySelector('#select-sound');
+        const clearSoundBtn = dialog.querySelector('#clear-sound');
+
+        const updateSoundControlsState = () => {
+            const disabled = systemAIVoiceCheckbox?.checked ?? false;
+            if (soundPathInput) {
+                soundPathInput.disabled = disabled;
+                soundPathInput.style.opacity = disabled ? '0.6' : '1';
+            }
+            if (selectSoundBtn) selectSoundBtn.disabled = disabled;
+            if (clearSoundBtn) clearSoundBtn.disabled = disabled;
+        };
+
+        systemAIVoiceCheckbox?.addEventListener('change', updateSoundControlsState);
+        updateSoundControlsState();
 
         // Обработчик чекбокса "Использовать глобальную скорость"
         const useGlobalCheckbox = dialog.querySelector('#use-global-speed');
@@ -712,6 +762,7 @@
         game.settings.set('lancer-communicator-dcw', 'lastPortrait', this._normalizeAssetPath(data.portraitPath));
         game.settings.set('lancer-communicator-dcw', 'lastSound', this._normalizeAssetPath(data.soundPath));
         game.settings.set('lancer-communicator-dcw', 'lastImage', this._normalizeAssetPath(data.imagePath));
+        game.settings.set('lancer-communicator-dcw', 'lastSystemAIVoice', !!data.systemAIVoice);
         game.settings.set('lancer-communicator-dcw', 'lastMessageStyle', data.style);
         game.settings.set('lancer-communicator-dcw', 'fontFamily', data.fontFamily);
         game.settings.set('lancer-communicator-dcw', 'lastTypingSpeed', data.typingSpeed);
@@ -741,6 +792,9 @@
         const voiceoverPath = this._normalizeAssetPath(this._getFormValue(formElement, '#voiceover-path'));
         game.settings.set('lancer-communicator-dcw', 'lastVoiceover', voiceoverPath);
 
+        const systemAIVoice = formElement.querySelector('#system-ai-voice')?.checked ?? false;
+        game.settings.set('lancer-communicator-dcw', 'lastSystemAIVoice', systemAIVoice);
+
         const postImageToChat = formElement.querySelector('#post-image-to-chat')?.checked;
         if (postImageToChat !== undefined) game.settings.set('lancer-communicator-dcw', 'postImageToChat', postImageToChat);
     }
@@ -759,7 +813,7 @@
      * @param {string|null} fontFamily - Семейство шрифта
      * @param {number|null} typingSpeed - Скорость печати (null = глобальная)
      */
-    static sendCommunicatorMessage(characterName, portraitPath, message, soundPath = '', voiceoverPath = '', imagePath = '', style = 'undertale', fontSize = 18, fontFamily = null, typingSpeed = null, messageWidth = null, postToChat = null, postImageToChat = null) {
+    static sendCommunicatorMessage(characterName, portraitPath, message, soundPath = '', voiceoverPath = '', imagePath = '', style = 'undertale', fontSize = 18, fontFamily = null, typingSpeed = null, messageWidth = null, postToChat = null, postImageToChat = null, systemAIVoice = false) {
         const effectiveFont = fontFamily || this.settings.fontFamily;
         const effectiveTypingSpeed = this._getEffectiveTypingSpeed(typingSpeed);
         const effectiveWidth = messageWidth || this.settings.globalMessageWidth || 30;
@@ -781,6 +835,7 @@
             typingSpeed: effectiveTypingSpeed,
             messageWidth: effectiveWidth,
             postImageToChat,
+            systemAIVoice: !!systemAIVoice,
             senderId: game.user.id,
             timestamp: new Date().toISOString()
         };
@@ -907,7 +962,7 @@
      * @returns {Promise<void>}
      */
     static async showCommunicatorMessage(data) {
-        const { characterName, portraitPath, message = '', soundPath, voiceoverPath, imagePath, style, fontSize, fontFamily, typingSpeed, messageWidth } = data;
+        const { characterName, portraitPath, message = '', soundPath, voiceoverPath, imagePath, style, fontSize, fontFamily, typingSpeed, messageWidth, systemAIVoice = false } = data;
         const normalizedPortraitPath = this._normalizeAssetPath(portraitPath);
         const normalizedSoundPath = this._normalizeAssetPath(soundPath);
         const normalizedVoiceoverPath = this._normalizeAssetPath(voiceoverPath);
@@ -975,7 +1030,7 @@
             }
         }
 
-        if (normalizedSoundPath && !normalizedVoiceoverPath) {
+        if (normalizedSoundPath && !normalizedVoiceoverPath && !systemAIVoice) {
             try {
                 soundInstance = new Audio(normalizedSoundPath);
                 await this._waitForAudio(soundInstance, 2000);
@@ -1019,14 +1074,24 @@
                     messageTextEl.appendChild(document.createTextNode(currentChar));
 
                     // Звук на каждый символ (если нет озвучки)
-                    if (!voiceoverAudio && soundInstance && !silentCharPattern.test(currentChar)) {
-                        soundInstance.currentTime = 0;
-                        soundInstance.playbackRate = 0.85 + Math.random() * 0.3;
-                        soundInstance.volume = voiceVolume;
-                        try {
-                            await soundInstance.play();
-                        } catch (e) {
-                            // Игнорируем ошибки автовоспроизведения
+                    if (!voiceoverAudio && !silentCharPattern.test(currentChar)) {
+                        if (systemAIVoice) {
+                            const randomSystemAIVoice = this._getRandomSystemAIVoicePath();
+                            if (randomSystemAIVoice) {
+                                const randomSound = new Audio(randomSystemAIVoice);
+                                randomSound.playbackRate = 0.85 + Math.random() * 0.3;
+                                randomSound.volume = voiceVolume;
+                                randomSound.play().catch(() => undefined);
+                            }
+                        } else if (soundInstance) {
+                            soundInstance.currentTime = 0;
+                            soundInstance.playbackRate = 0.85 + Math.random() * 0.3;
+                            soundInstance.volume = voiceVolume;
+                            try {
+                                await soundInstance.play();
+                            } catch (e) {
+                                // Игнорируем ошибки автовоспроизведения
+                            }
                         }
                     }
 
@@ -1139,7 +1204,7 @@
     /**
      * Создаёт макрос для отправки сообщения коммуникатора
      */
-    static async createCommunicatorMacro(characterName, portraitPath, message, soundPath, voiceoverPath, imagePath, style, fontSize, fontFamily = null, typingSpeed = null, messageWidth = null, postImageToChat = null) {
+    static async createCommunicatorMacro(characterName, portraitPath, message, soundPath, voiceoverPath, imagePath, style, fontSize, fontFamily = null, typingSpeed = null, messageWidth = null, postImageToChat = null, systemAIVoice = false) {
         if (!game.user.can('MACRO_SCRIPT')) {
             ui.notifications.warn(game.i18n.localize('LANCER.Settings.Warnings.CreateMacroTextPerm'));
             return;
@@ -1183,6 +1248,7 @@
                         const safeImagePath = JSON.stringify(imagePath);
                         const safeStyle = JSON.stringify(style);
                         const safeFontFamily = JSON.stringify(fontFamily || '');
+                        const safeSystemAIVoice = JSON.stringify(!!systemAIVoice);
                         const commandText = `// Lancer Communicator Macro
                         const lcmApi = game.modules.get('lancer-communicator-dcw')?.api;
                         if (!lcmApi?.sendCommunicatorMessage) {
@@ -1202,7 +1268,8 @@
                             ${typingSpeedArg},
                             ${messageWidthArg},
                             null,
-                            ${postImageToChatArg}
+                            ${postImageToChatArg},
+                            ${safeSystemAIVoice}
                         );`;
 
                         Macro.create({
@@ -1230,7 +1297,7 @@
     /**
      * Создаёт быстрый макрос коммуникатора с запросом сообщения при запуске
      */
-    static async createQuickCommunicatorMacro(characterName, portraitPath, soundPath, voiceoverPath, imagePath, style, fontSize, fontFamily = null, typingSpeed = null, messageWidth = null, postImageToChat = null) {
+    static async createQuickCommunicatorMacro(characterName, portraitPath, soundPath, voiceoverPath, imagePath, style, fontSize, fontFamily = null, typingSpeed = null, messageWidth = null, postImageToChat = null, systemAIVoice = false) {
         if (!game.user.can('MACRO_SCRIPT')) {
             ui.notifications.warn(game.i18n.localize('LANCER.Settings.Warnings.CreateMacroTextPerm'));
             return;
@@ -1240,6 +1307,7 @@
         const typingSpeedArg = typingSpeed !== null ? typingSpeed : 'null';
         const messageWidthArg = messageWidth !== null ? messageWidth : 'null';
         const postImageToChatArg = postImageToChat !== null ? postImageToChat : 'null';
+        const systemAIVoiceArg = !!systemAIVoice;
         const globalTypingSpeed = game.settings.get('lancer-communicator-dcw', 'globalTypingSpeed');
         const globalMessageWidth = game.settings.get('lancer-communicator-dcw', 'globalMessageWidth') || 30;
 
@@ -1410,7 +1478,8 @@
             result.typingSpeed,
             result.messageWidth,
             null,
-            ${postImageToChatArg}
+            ${postImageToChatArg},
+            ${systemAIVoiceArg}
         );
     }
 })();`;

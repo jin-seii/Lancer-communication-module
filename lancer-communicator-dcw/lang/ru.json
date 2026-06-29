@@ -17,6 +17,8 @@
         "MessageText": "Текст сообщения",
         "Message": "Сообщение",
         "SoundSelect": "Выбор звука",
+        "SystemAIVoice": "Голос System AI",
+        "SystemAIVoiceHint": "Использовать случайные звуки набора из template/sysai",
         "SelectSound": "Выбрать звук",
         "DialingSound": "Звук набора текста",
         "LastSelectSound": "Последний выбранный звук",

@@ -197,12 +197,15 @@ function handleDirectSend(sendContent) {
 
     const soundPath = game.settings.get(MODULE_NAME, 'lastSound') || '';
     const voiceoverPath = game.settings.get(MODULE_NAME, 'lastVoiceover') || '';
+    const imagePath = game.settings.get(MODULE_NAME, 'lastImage') || '';
     const style = game.settings.get(MODULE_NAME, 'lastMessageStyle') || 'undertale';
     const fontSize = game.settings.get(MODULE_NAME, 'messageFontSize') || 18;
     const fontFamily = game.settings.get(MODULE_NAME, 'fontFamily') || 'Purista';
     const typingSpeed = game.settings.get(MODULE_NAME, 'lastTypingSpeed');
     const messageWidth = game.settings.get(MODULE_NAME, 'lastMessageWidth') || game.settings.get(MODULE_NAME, 'globalMessageWidth') || 30;
     const postToChat = game.settings.get(MODULE_NAME, 'postToChat');
+    const postImageToChat = game.settings.get(MODULE_NAME, 'postImageToChat');
+    const systemAIVoice = game.settings.get(MODULE_NAME, 'lastSystemAIVoice') || false;
 
     LancerCommunicator.sendCommunicatorMessage(
         characterName,
@@ -210,12 +213,15 @@ function handleDirectSend(sendContent) {
         message,
         soundPath,
         voiceoverPath,
+        imagePath,
         style,
         fontSize,
         fontFamily,
         typingSpeed,
         messageWidth,
-        postToChat
+        postToChat,
+        postImageToChat,
+        systemAIVoice
     );
 }
 

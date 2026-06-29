@@ -17,6 +17,8 @@
         "MessageText": "Texto da Mensagem",
         "Message": "Mensagem",
         "SoundSelect": "Seleção de Som",
+        "SystemAIVoice": "Voz System AI",
+        "SystemAIVoiceHint": "Usar sons de digitação aleatórios de template/sysai",
         "SelectSound": "Selecionar Som",
         "DialingSound": "Som de discagem",
         "LastSelectSound": "Último som selecionado",
