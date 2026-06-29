@@ -1,10 +1,18 @@
 import { LancerCommunicator } from './communicator.js';
 
+const MODULE_ID = 'lancer-communicator-dcw';
+
 /**
  * Регистрирует публичное API модуля для доступа из макросов
  */
 export function registerAPI() {
-    game.modules.get('lancer-communicator-dcw').api = {
+    const moduleRef = game.modules.get(MODULE_ID);
+    if (!moduleRef) {
+        console.error(`Lancer Communicator | Failed to register API: module '${MODULE_ID}' not found`);
+        return false;
+    }
+
+    moduleRef.api = {
         /**
          * Открывает диалог настроек коммуникатора
          */
@@ -47,4 +55,6 @@ export function registerAPI() {
          */
         debug: LancerCommunicator.debug.bind(LancerCommunicator)
     };
+
+    return true;
 }

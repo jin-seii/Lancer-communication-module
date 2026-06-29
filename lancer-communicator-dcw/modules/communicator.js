@@ -1184,7 +1184,12 @@
                         const safeStyle = JSON.stringify(style);
                         const safeFontFamily = JSON.stringify(fontFamily || '');
                         const commandText = `// Lancer Communicator Macro
-                        game.modules.get('lancer-communicator-dcw').api.sendCommunicatorMessage(
+                        const lcmApi = game.modules.get('lancer-communicator-dcw')?.api;
+                        if (!lcmApi?.sendCommunicatorMessage) {
+                            ui.notifications.error('Lancer Communicator API is unavailable. Try reloading the world.');
+                            return;
+                        }
+                        lcmApi.sendCommunicatorMessage(
                             ${safeCharacterName},
                             ${safePortraitPath},
                             ${safeMessage},
@@ -1387,7 +1392,12 @@
     });
     
     if (result && result.message && result.message.trim()) {
-        game.modules.get('lancer-communicator-dcw').api.sendCommunicatorMessage(
+        const lcmApi = game.modules.get('lancer-communicator-dcw')?.api;
+        if (!lcmApi?.sendCommunicatorMessage) {
+            ui.notifications.error('Lancer Communicator API is unavailable. Try reloading the world.');
+            return;
+        }
+        lcmApi.sendCommunicatorMessage(
             "${escapedCharName}",
             "${escapedPortraitPath}",
             result.message,

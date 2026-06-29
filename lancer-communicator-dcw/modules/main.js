@@ -68,6 +68,9 @@ Hooks.once('init', () => {
 Hooks.once('ready', () => {
     console.log('Lancer Communicator | Ready');
 
+    // Safety net for macro execution paths: ensure API is exposed after full world load.
+    registerAPI();
+
     // Применяем CSS-переменные для шрифта из сохранённых настроек
     try {
         const fontSize = game.settings.get(MODULE_NAME, 'messageFontSize') || 18;
