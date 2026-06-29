@@ -12,6 +12,7 @@
     ];
     static SYSTEM_AI_MIN_INTERVAL_MS = 45;
     static SYSTEM_AI_MAX_CONCURRENT = 4;
+    static SYSTEM_AI_PLAY_EVERY_NTH_CHAR = 2;
 
     /** Кэшированные настройки модуля */
     static settings = {
@@ -1101,6 +1102,7 @@
 
         return new Promise((resolve) => {
             let i = 0;
+            let systemAIAudibleCharCount = 0;
 
             const typeWriter = async () => {
                 if (i < message.length) {
@@ -1129,7 +1131,10 @@
                     // Звук на каждый символ (если нет озвучки)
                     if (!voiceoverAudio && !silentCharPattern.test(currentChar)) {
                         if (systemAIVoice) {
-                            this._playSystemAIVoice(voiceVolume);
+                            systemAIAudibleCharCount += 1;
+                            if (systemAIAudibleCharCount % this.SYSTEM_AI_PLAY_EVERY_NTH_CHAR === 1) {
+                                this._playSystemAIVoice(voiceVolume);
+                            }
                         } else if (soundInstance) {
                             soundInstance.currentTime = 0;
                             soundInstance.playbackRate = 0.85 + Math.random() * 0.3;
